@@ -1,0 +1,26 @@
+# Mouse worked example. Everything here runs on a laptop CPU with the mock / offline backends.
+# To use the real backends, change `backend:` in the sections below (see README.md in this folder).
+species: mouse
+description: laboratory mouse, home cage and open field, top and oblique cameras, one to eight animals
+literature:
+  backend: offline          # europepmc | pubmed for a live search
+  limit: 200
+prompts:
+  n: 40
+  seed: 0
+generate:
+  backend: mock             # qwen_image | wan_video | http_api
+  options: {}
+propose:
+  backend: mock             # sam | yolo
+review:
+  auto_accept: false        # `animalworld pipeline --auto-accept` accepts every proposal that passes the gates
+dataset:
+  formats: [coco, yolo]
+  task: segment             # detect | segment | pose
+train:
+  backend: yolo             # yolo | rfdetr | sleap_dlc
+  task: segment
+  min_accepted_images: 200  # scalable training starts only above this many accepted images
+track:
+  backend: iou

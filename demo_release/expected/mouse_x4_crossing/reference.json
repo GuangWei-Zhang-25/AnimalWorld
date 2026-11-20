@@ -1,0 +1,10 @@
+{
+ "clip": "mouse_x4_crossing.mp4",
+ "camera_fps": 30.0,
+ "every_nth_frame": 3,
+ "body_length_px": 176.5,
+ "frames": 150,
+ "animals": 4,
+ "validated": true,
+ "note": "positions from the lab's reviewed reference tracks of this recording (corrected by a person and confirmed as fixed)"
+}

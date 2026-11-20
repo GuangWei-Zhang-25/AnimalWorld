@@ -1,0 +1,73 @@
+[build-system]
+requires = ["hatchling>=1.18"]
+build-backend = "hatchling.build"
+
+[project]
+name = "animalworld"
+version = "0.2.0"
+description = "Species name in, deployable detection / pose / tracking models out: literature-driven prompts, synthetic image and video generation, human-in-the-loop annotation, training and deployment."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "AGPL-3.0-or-later" }
+authors = [{ name = "Guangwei Zhang" }]
+keywords = ["animal behaviour", "synthetic data", "detection", "pose estimation", "tracking", "annotation"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Image Recognition",
+]
+# Core install: light, CPU only, no torch.
+dependencies = [
+  "numpy>=1.21",
+  "pillow>=9.0",
+  "pyyaml>=6.0",
+  "requests>=2.28",
+]
+
+[project.optional-dependencies]
+# Local open-weight generators (Qwen-Image, Wan). Weights are NOT downloaded by this package.
+generate = ["torch>=2.1", "diffusers>=0.35", "transformers>=4.55", "accelerate", "opencv-python-headless>=4.5", "imageio[ffmpeg]"]
+# Label exchange with SLEAP / DeepLabCut, video frame extraction for review.
+annotate = ["opencv-python-headless>=4.5", "sleap-io>=0.2", "pandas>=1.5", "tables"]
+# Scalable trainers. Ultralytics is AGPL-3.0, see README "Licence".
+train = ["ultralytics>=8.3", "rfdetr>=1.2"]
+# Running exported weights on recordings.
+deploy = ["onnxruntime>=1.17", "opencv-python-headless>=4.5"]
+# Animal World Run on any computer: video reading, the CPU engine (MouseWorld-DET-Lite, ONNX) and H.264 overlay videos.
+run = ["opencv-python-headless>=4.5", "onnxruntime>=1.17", "imageio-ffmpeg>=0.4"]
+# The full engine (MouseWorld-DET + MouseWorld-Track + MouseWorld-Pose) on an NVIDIA GPU. SAM 3.1 is not on PyPI with
+# video support: install it from https://github.com/facebookresearch/sam3 (install.sh --gpu does that).
+run-gpu = ["animalworld[run]", "torch>=2.5", "torchvision", "rfdetr>=1.12", "ultralytics>=8.3", "sam2>=1.1", "scipy>=1.10", "numpy<2"]
+# Optional LLM slot expansion with the Anthropic API (OpenAI-compatible endpoints need only `requests`).
+llm = ["anthropic>=0.60"]
+test = ["pytest>=7"]
+all = ["animalworld[generate,annotate,train,deploy,llm,run]"]
+
+[project.scripts]
+animalworld = "animalworld.cli:main"
+mouseworld = "animalworld.zeroshot.app:main"
+
+[project.urls]
+Homepage = "https://github.com/GuangWei-Zhang-25/AnimalWorld"
+Source = "https://github.com/GuangWei-Zhang-25/AnimalWorld"
+Issues = "https://github.com/GuangWei-Zhang-25/AnimalWorld/issues"
+
+# Third-party backends register here, e.g.
+# [project.entry-points."animalworld.generators"]
+# my_generator = "my_package.my_module:MyGenerator"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/animalworld"]
+core-metadata-version = "2.4"      # what PyPI and current upload tools accept
+
+[tool.hatch.build.targets.wheel.force-include]
+"examples" = "animalworld/examples"
+
+[tool.hatch.build.targets.sdist]
+core-metadata-version = "2.4"
+include = ["src", "examples", "docs", "tests", "README.md", "INSTALL.md", "CHANGELOG.md", "CITATION.cff", "LICENSE", "install.sh", "install.bat", "pyproject.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

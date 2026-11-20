@@ -1,0 +1,1 @@
+MouseWorld weights v1 for Animal World Run. Six model files; the full (GPU) engine uses mouseworld-det, mouseworld-pose and the two tracker detectors (default tracker configuration: scored_pair), the CPU engine the two ONNX files. See README.md for the file list, checksums and licences.

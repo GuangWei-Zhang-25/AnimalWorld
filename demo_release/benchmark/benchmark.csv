@@ -1,0 +1,29 @@
+method,clip,animals,given,output_rate,video_s,compute_s,model_loading,compute_s_per_video_s,camera_frames_per_s,peak_gpu_mb,peak_rss_mb,correct_identity_mouse_frames,reference_mouse_frames,identity_fixes,found,missed,false
+MouseWorld-Track (default),mouse_x1_cage,1,"nothing (animal count proposed by the app, accepted)",every camera frame (30 per s),15.0,179,included (each step loads its model),11.93,2.51,2432,5688,150,150,0,150,0,0
+MouseWorld-DET-Lite + simple tracker (CPU),mouse_x1_cage,1,the animal count,every camera frame (30 per s),15.0,270.1,included,18.01,1.67,,,150,150,0,150,0,0
+SAM 2.1-L alone,mouse_x1_cage,1,reference box of every animal on frame 0,10 per s (every 3rd camera frame),15.0,12.8,"excluded (2.7 s, once for the four clips)",0.85,35.16,1843,3381,150,150,0,150,0,0
+SAM 2.1-S alone,mouse_x1_cage,1,reference box of every animal on frame 0,10 per s (every 3rd camera frame),15.0,11.3,"excluded (3.1 s, once for the four clips)",0.75,39.82,737,3337,150,150,0,150,0,0
+SAM 2.1-T alone,mouse_x1_cage,1,reference box of every animal on frame 0,10 per s (every 3rd camera frame),15.0,11.2,"excluded (2.8 s, once for the four clips)",0.75,40.18,697,3309,150,150,0,150,0,0
+SAM 3.1 alone,mouse_x1_cage,1,"text prompt ""mouse"" only",10 per s (every 3rd camera frame),15.0,14.5,"excluded (16.4 s, once for the four clips)",0.97,31.03,23483,7611,150,150,0,150,0,53
+MouseWorld-DET + simple tracker,mouse_x1_cage,1,the animal count,10 per s (every 3rd camera frame),15.0,9.2,"excluded (6.3 s, once for the four clips)",0.61,48.91,327,1781,150,150,0,150,0,0
+MouseWorld-Track (default),mouse_x2_cage,2,"nothing (animal count proposed by the app, accepted)",every camera frame (30 per s),15.0,195,included (each step loads its model),13.0,2.31,2468,6373,300,300,0,300,0,0
+MouseWorld-DET-Lite + simple tracker (CPU),mouse_x2_cage,2,the animal count,every camera frame (30 per s),15.0,253.5,included,16.9,1.78,,,295,300,2,300,0,0
+SAM 2.1-L alone,mouse_x2_cage,2,reference box of every animal on frame 0,10 per s (every 3rd camera frame),15.0,13.7,"excluded (2.7 s, once for the four clips)",0.91,32.85,1852,5238,299,300,0,299,1,1
+SAM 2.1-S alone,mouse_x2_cage,2,reference box of every animal on frame 0,10 per s (every 3rd camera frame),15.0,12.9,"excluded (3.1 s, once for the four clips)",0.86,34.88,745,5195,153,300,3,163,137,136
+SAM 2.1-T alone,mouse_x2_cage,2,reference box of every animal on frame 0,10 per s (every 3rd camera frame),15.0,12.3,"excluded (2.8 s, once for the four clips)",0.82,36.59,706,5166,300,300,0,300,0,0
+SAM 3.1 alone,mouse_x2_cage,2,"text prompt ""mouse"" only",10 per s (every 3rd camera frame),15.0,14.1,"excluded (16.4 s, once for the four clips)",0.94,31.91,23983,7611,289,300,2,295,5,178
+MouseWorld-DET + simple tracker,mouse_x2_cage,2,the animal count,10 per s (every 3rd camera frame),15.0,9.5,"excluded (6.3 s, once for the four clips)",0.63,47.37,327,1814,294,300,2,300,0,0
+MouseWorld-Track (default),mouse_x4_crossing,4,"nothing (animal count proposed by the app, accepted)",every camera frame (30 per s),15.0,257,included (each step loads its model),17.13,1.75,2470,6945,600,600,0,600,0,0
+MouseWorld-DET-Lite + simple tracker (CPU),mouse_x4_crossing,4,the animal count,every camera frame (30 per s),15.0,289.0,included,19.27,1.56,,,600,600,0,600,0,0
+SAM 2.1-L alone,mouse_x4_crossing,4,reference box of every animal on frame 0,10 per s (every 3rd camera frame),15.0,16.7,"excluded (2.7 s, once for the four clips)",1.11,26.95,1869,5356,600,600,0,600,0,0
+SAM 2.1-S alone,mouse_x4_crossing,4,reference box of every animal on frame 0,10 per s (every 3rd camera frame),15.0,15.8,"excluded (3.1 s, once for the four clips)",1.05,28.48,764,5321,600,600,0,600,0,0
+SAM 2.1-T alone,mouse_x4_crossing,4,reference box of every animal on frame 0,10 per s (every 3rd camera frame),15.0,15.6,"excluded (2.8 s, once for the four clips)",1.04,28.85,722,5285,600,600,0,600,0,0
+SAM 3.1 alone,mouse_x4_crossing,4,"text prompt ""mouse"" only",10 per s (every 3rd camera frame),15.0,18.0,"excluded (16.4 s, once for the four clips)",1.2,25.0,25735,7611,600,600,0,600,0,478
+MouseWorld-DET + simple tracker,mouse_x4_crossing,4,the animal count,10 per s (every 3rd camera frame),15.0,12.6,"excluded (6.3 s, once for the four clips)",0.84,35.71,327,1921,600,600,0,600,0,0
+MouseWorld-Track (default),mouse_x5_huddle,5,"nothing (animal count proposed by the app, accepted)",every camera frame (30 per s),20.0,305,included (each step loads its model),15.25,1.97,2470,9310,1000,1000,0,1000,0,0
+MouseWorld-DET-Lite + simple tracker (CPU),mouse_x5_huddle,5,the animal count,every camera frame (30 per s),20.0,391.9,included,19.59,1.53,,,1000,1000,0,1000,0,0
+SAM 2.1-L alone,mouse_x5_huddle,5,reference box of every animal on frame 0,10 per s (every 3rd camera frame),20.0,23.8,"excluded (2.7 s, once for the four clips)",1.19,25.21,1875,6190,1000,1000,0,1000,0,0
+SAM 2.1-S alone,mouse_x5_huddle,5,reference box of every animal on frame 0,10 per s (every 3rd camera frame),20.0,23.2,"excluded (3.1 s, once for the four clips)",1.16,25.86,773,6169,1000,1000,0,1000,0,0
+SAM 2.1-T alone,mouse_x5_huddle,5,reference box of every animal on frame 0,10 per s (every 3rd camera frame),20.0,22.7,"excluded (2.8 s, once for the four clips)",1.14,26.43,731,6121,1000,1000,0,1000,0,0
+SAM 3.1 alone,mouse_x5_huddle,5,"text prompt ""mouse"" only",10 per s (every 3rd camera frame),20.0,22.6,"excluded (16.4 s, once for the four clips)",1.13,26.55,25780,7611,1000,1000,0,1000,0,255
+MouseWorld-DET + simple tracker,mouse_x5_huddle,5,the animal count,10 per s (every 3rd camera frame),20.0,16.3,"excluded (6.3 s, once for the four clips)",0.82,36.81,332,1921,1000,1000,0,1000,0,0

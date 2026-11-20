@@ -1,0 +1,10 @@
+{
+ "clip": "mouse_x2_cage.mp4",
+ "camera_fps": 30.0,
+ "every_nth_frame": 3,
+ "body_length_px": 174.4,
+ "frames": 150,
+ "animals": 2,
+ "validated": false,
+ "note": "positions from tracks made by the lab's annotation pipeline and delivered, but NOT confirmed by a person for this recording: treat agreement as agreement between two programs"
+}

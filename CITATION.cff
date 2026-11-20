@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below. A manuscript is in preparation; this entry will be replaced by its reference."
+title: "Animal World"
+type: software
+authors:
+  - family-names: "Zhang"
+    given-names: "Guangwei"
+version: "0.2.0"
+license: "AGPL-3.0-or-later"
+repository-code: "https://github.com/GuangWei-Zhang-25/AnimalWorld"

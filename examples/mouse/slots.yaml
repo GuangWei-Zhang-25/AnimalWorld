@@ -1,0 +1,96 @@
+# Mouse slot vocabulary (the worked example).
+# Wording adapted from the MouseWorld prompt builders (mw_det_syn/gap_targeted/scripts/prompts_div.py):
+# generic laboratory vocabulary only, no description of any specific real setup.
+# `keywords` are regular expressions matched against literature titles + abstracts by `animalworld taxonomy`.
+animal:
+  singular: mouse
+  plural: mice
+  synonyms: [mice, murine, "Mus musculus"]
+  definition: "small adult laboratory mice (Mus musculus, about 9 cm body length, small rounded body, large round ears, pointed snout, thin tail) - not rats"
+  negatives: [rat, rats, large rodent, guinea pig, hamster]
+keypoints: [nose, left_ear, right_ear, neck, left_hip, right_hip, tail_base]
+flip_idx: [0, 2, 1, 3, 5, 4, 6]
+skeleton: [[0, 3], [1, 3], [2, 3], [3, 4], [3, 5], [4, 6], [5, 6]]
+slots:
+  appearance:
+    - {id: black, text: black mouse, weight: 4, keywords: ['C57BL', '\bB6\b', 'black']}
+    - {id: white, text: white mouse, weight: 3, keywords: ['BALB', '\bCD-?1\b', 'albino', 'Swiss']}
+    - {id: brown, text: brown mouse, weight: 2, keywords: ['agouti', '129S', '\bCBA\b', 'wild[- ]type|wild[- ]derived']}
+    - {id: grey, text: grey mouse, weight: 1, keywords: ['DBA', 'dilute']}
+    - {id: eartag, text: black mouse with a small metal ear tag, weight: 1, keywords: ['ear[- ]tag']}
+    - {id: tailmark, text: white mouse with black marker rings on its tail, weight: 1, keywords: ['tail mark']}
+    - {id: tethered, text: black mouse with a thin cable attached to its head, weight: 1, keywords: ['photometry', 'optogenetic', 'tether', 'electrophysiolog', 'miniscope']}
+  group_size:
+    - {id: 1, weight: 35, keywords: ['single[- ]housed', 'individually housed', 'singly']}
+    - {id: 2, weight: 25, keywords: ['dyad', 'pair', 'resident[- ]intruder', 'social interaction']}
+    - {id: 3, weight: 15, keywords: ['three[- ]chamber', 'triad']}
+    - {id: 4, weight: 8, keywords: ['group[- ]housed', 'group housing']}
+    - {id: 5, weight: 7, keywords: ['group[- ]housed', 'colony', 'social group']}
+    - {id: 6, weight: 4, keywords: ['colony', 'social hierarchy']}
+    - {id: 8, weight: 3, keywords: ['colony', 'semi[- ]natural']}
+  behaviour:
+    - {id: walking, text: walking, keywords: ['locomot', 'ambulat', 'distance travel']}
+    - {id: sitting, text: sitting still, keywords: ['immobil', 'freez', 'rest']}
+    - {id: grooming, text: grooming, keywords: ['groom']}
+    - {id: sniffing, text: sniffing the floor, keywords: ['sniff', 'olfact', 'explor']}
+    - {id: rearing, text: rearing up on its hind legs, keywords: ['rearing']}
+    - {id: turning, text: stretched out while turning, keywords: ['stretch', 'turning']}
+    - {id: eating, text: eating a food pellet held in its paws, keywords: ['feeding', 'food intake', 'eating']}
+    - {id: running, text: running, keywords: ['running', 'wheel', 'escape']}
+    - {id: digging, text: digging in the bedding, keywords: ['digg', 'burrow', 'marble']}
+    - {id: nesting, text: lying curled up in its nest, keywords: ['nest', 'sleep', 'huddl']}
+  lighting:
+    - {id: overhead, text: even overhead light, weight: 3, keywords: ['light phase', 'lux']}
+    - {id: side, text: light from one side with soft shadows}
+    - {id: daylight, text: bright daylight from a window}
+    - {id: dim, text: dim room light, keywords: ['dim light', 'dark phase', 'red light']}
+    - {id: ring, text: ring-light with a faint reflection on the floor}
+    - {id: two_lamps, text: two ceiling lamps with soft double shadows}
+  camera:
+    - {id: top, text: 'Seen straight down from above; no camera in the picture.', weight: 4, keywords: ['top[- ]view', 'overhead camera', 'from above']}
+    - {id: high, text: 'Seen from very high above, straight down; no camera in the picture.', weight: 2}
+    - {id: oblique, text: 'Seen from above at an oblique angle; no camera or person in the picture.', weight: 2}
+    - {id: side, text: 'Seen from the side at the height of the cage floor, through a clear wall; no camera in the picture.', weight: 1, keywords: ['side[- ]view', 'lateral view']}
+  arena:
+    - {id: open_field, text: 'a square open-field arena with a {floor} floor and {wall} walls', weight: 4, keywords: ['open[- ]field']}
+    - {id: home_cage, text: 'a clear plastic home cage with {bedding}, a food hopper and a water bottle', weight: 4, keywords: ['home[- ]cage']}
+    - {id: operant, text: 'a small operant box with parallel steel grid rods as the floor, aluminium walls, a nose-poke port with a small light and a lever', weight: 1, keywords: ['operant', 'nose[- ]poke', 'lever']}
+    - {id: plus_maze, text: 'an elevated plus maze with two open arms and two walled arms on a {floor} platform', weight: 1, keywords: ['elevated plus maze', '\bEPM\b']}
+    - {id: three_chamber, text: 'a rectangular three-chamber box with clear dividing walls, small doorways and a wire cup in each end chamber', weight: 1, keywords: ['three[- ]chamber', 'sociab']}
+    - {id: round_arena, text: 'a round arena with a {floor} floor and a low {wall} wall', weight: 2, keywords: ['circular arena', 'cylinder']}
+    - {id: enriched, text: 'a large cage with {bedding}, a shelter, a running wheel and a cardboard tube', weight: 2, keywords: ['enrich', 'running wheel', 'shelter']}
+    - {id: y_maze, text: 'a Y-shaped maze with three {wall} arms on a {floor} floor', weight: 1, keywords: ['Y[- ]maze', 'T[- ]maze']}
+  scale:
+    - {id: tiny, text: 'each mouse tiny, about one thirtieth of the image width', weight: 1}
+    - {id: small, text: 'each mouse small, about one fifteenth of the image width', weight: 3}
+    - {id: medium, text: 'each mouse about one eighth of the image width', weight: 3}
+    - {id: large, text: 'each mouse about one quarter of the image width', weight: 1}
+  occlusion:
+    - {id: none, text: whole bodies visible, weight: 5}
+    - {id: behind, text: one mouse partly hidden behind an object, weight: 1}
+    - {id: inside, text: one mouse half inside a shelter or tube, weight: 1}
+    - {id: border, text: one mouse partly cut off by the edge of the picture, weight: 1}
+  quality:
+    - plain lab video still
+    - surveillance-style monitoring frame
+    - ordinary laboratory recording
+    - frame from a behaviour-tracking camera
+    - machine-vision camera frame
+    - webcam recording of an experiment
+  floor: [white, grey, black, matte blue, beige]
+  wall: [white, grey, black, clear acrylic, pale wooden]
+  bedding: [pale wood-chip bedding, corncob bedding, white paper bedding, dark soil-like bedding]
+  aspect: [1.0, 1.3333, 1.7778, 0.75]
+  look: [none, none, mono, lowlight, actioncam]
+candidate_patterns:
+  arena: ['\b((?:[a-z]+[- ]){1,2}(?:test|maze|task|assay|arena|chamber|paradigm))\b']
+  appearance: ['\b([A-Z][A-Za-z0-9]{1,6}(?:/[A-Za-z0-9]{1,6})+)\b', '\b(\d?x?[A-Z]{2,5}\d{0,3}) mice\b']
+template: >-
+  A realistic photograph, {quality}: {arena}. {camera} {lighting}. There {is_are} exactly {count_word} {animal}
+  and no other animals: {who}, {definition}, {occlusion}, {scale}, {behaviour}.
+empty_template: >-
+  A realistic photograph, {quality}: {arena}. {camera} {lighting}. The scene is completely empty: no mouse,
+  no animal of any kind. Realistic laboratory footage.
+negative_prompt: >-
+  studio product photo, camera, tripod, photographer, cartoon, illustration, painting, 3d render, text, watermark,
+  people, cats, extra animals, deformed animals, animals with two heads, merged animals, extra legs, missing tail

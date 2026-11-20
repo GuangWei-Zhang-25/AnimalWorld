@@ -1,0 +1,63 @@
+# A second species needs only YAML: this file and project.yaml. No Python.
+animal:
+  singular: pig
+  plural: pigs
+  synonyms: [pigs, piglet, piglets, swine, "Sus scrofa"]
+  definition: "domestic pigs with a stout body, flat snout, upright ears and a short curled tail"
+  negatives: [dog, sheep, cow, wild boar]
+keypoints: [nose, left_ear, right_ear, withers, hip, tail_base]
+flip_idx: [0, 2, 1, 3, 4, 5]
+skeleton: [[0, 3], [1, 3], [2, 3], [3, 4], [4, 5]]
+slots:
+  appearance:
+    - {id: pink, text: pink pig, weight: 5, keywords: ['Landrace', 'Yorkshire', 'Large White']}
+    - {id: spotted, text: pink pig with black spots, weight: 2, keywords: ['Pietrain', 'spotted']}
+    - {id: dark, text: dark brown pig, weight: 1, keywords: ['Duroc', 'Berkshire']}
+    - {id: marked, text: pink pig with a coloured spray mark on its back, weight: 1, keywords: ['spray[- ]mark', 'marked']}
+  group_size:
+    - {id: 1, weight: 15}
+    - {id: 2, weight: 20}
+    - {id: 4, weight: 25, keywords: ['group[- ]housed', 'pen mates']}
+    - {id: 6, weight: 25, keywords: ['group[- ]housed', 'litter']}
+    - {id: 10, weight: 15, keywords: ['litter', 'weaner']}
+  behaviour:
+    - {id: standing, text: standing, keywords: ['standing']}
+    - {id: lying, text: lying on its side, keywords: ['lying', 'resting']}
+    - {id: walking, text: walking, keywords: ['locomot', 'walking']}
+    - {id: feeding, text: feeding at the trough, keywords: ['feeding', 'feeder']}
+    - {id: rooting, text: rooting in the straw with its snout, keywords: ['rooting', 'explor']}
+    - {id: drinking, text: drinking from a nipple drinker, keywords: ['drink']}
+  lighting:
+    - even barn lighting from ceiling lamps
+    - daylight through a side window with soft shadows
+    - dim evening light
+    - warm light from a heat lamp
+  camera:
+    - {id: top, text: 'Seen straight down from a ceiling camera; no camera in the picture.', weight: 3}
+    - {id: oblique, text: 'Seen from above at an oblique angle from one corner of the pen; no camera in the picture.', weight: 2}
+  arena:
+    - {id: slatted_pen, text: 'an indoor pen with a {floor} slatted floor and metal bar walls', weight: 3, keywords: ['slatted']}
+    - {id: straw_pen, text: 'an indoor pen with deep straw bedding and concrete walls', weight: 2, keywords: ['straw']}
+    - {id: farrowing, text: 'a farrowing pen with a rubber mat, a heat-lamp corner and metal rails', weight: 1, keywords: ['farrowing']}
+    - {id: outdoor, text: 'an outdoor paddock with bare soil and a wooden fence', weight: 1, keywords: ['outdoor', 'pasture', 'free[- ]range']}
+  scale:
+    - {id: small, text: 'each pig small, about one tenth of the image width'}
+    - {id: medium, text: 'each pig about one fifth of the image width'}
+    - {id: large, text: 'each pig about one third of the image width'}
+  occlusion:
+    - {id: none, text: whole bodies visible, weight: 4}
+    - {id: behind, text: one pig partly hidden behind the feeder}
+    - {id: border, text: one pig partly cut off by the edge of the picture}
+  quality: [farm monitoring camera frame, ordinary barn video still, surveillance-style recording]
+  floor: [grey concrete, green plastic, dark]
+  wall: [grey, white]
+  bedding: [straw, sawdust]
+  aspect: [1.3333, 1.7778]
+  look: [none]
+template: >-
+  A realistic photograph, {quality}: {arena}. {camera} {lighting}. There {is_are} exactly {count_word} {animal}
+  and no other animals: {who}, {definition}, {occlusion}, {scale}, {behaviour}.
+empty_template: >-
+  A realistic photograph, {quality}: {arena}. {camera} {lighting}. The pen is completely empty: no pig, no animal of any kind.
+negative_prompt: >-
+  cartoon, illustration, painting, 3d render, text, watermark, people, extra animals, deformed animals, merged animals

@@ -1,0 +1,41 @@
+{
+ "reference": {
+  "frames": 150,
+  "every_nth_camera_frame": 3,
+  "per_second": 10.0,
+  "mouse_frames": 300,
+  "animals": 2,
+  "validated": false,
+  "note": "positions from tracks made by the lab's annotation pipeline and delivered, but NOT confirmed by a person for this recording: treat agreement as agreement between two programs"
+ },
+ "identity_linked_at_s": 1.3,
+ "tracked_rows": {
+  "correct_identity_mouse_frames": 300,
+  "of": 300,
+  "pct": 100.0
+ },
+ "identity_fixes": 0,
+ "fix_kinds": {
+  "swap": 0,
+  "wrong_object": 0,
+  "lost": 0,
+  "never_found": 0
+ },
+ "fix_list": [],
+ "detection": {
+  "found": 300,
+  "missed": 0,
+  "false": 0,
+  "of_reference_mouse_frames": 300
+ },
+ "rows_between_reference_frames": {
+  "scored_against": "straight line between neighbouring reference positions (approximation)",
+  "filled": 596,
+  "filled_correct": 596,
+  "interpolated": 0,
+  "interpolated_correct": 0,
+  "no_row": 0
+ },
+ "keypoints": "no keypoint reference exists for this clip; not scored",
+ "perfect": true
+}

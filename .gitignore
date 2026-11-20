@@ -1,0 +1,20 @@
+.venv-*/
+dist/
+__pycache__/
+*.pyc
+.pytest_cache/
+/core
+/core.[0-9]*
+_work/
+_moved_aside/
+weights_local/
+runs/
+# not for the public repository
+STATUS.md
+*.ckpt
+*.pt
+*.pth
+*.onnx
+weights_release/*.ckpt
+demo_release/**/*.mp4
+demo_release/expected.zip

@@ -1,0 +1,15 @@
+species: pig
+description: group-housed piglets in indoor pens, ceiling camera
+literature:
+  backend: europepmc        # no bundled abstracts for pig: use a live search, or point `source` at your own CSV
+  limit: 200
+prompts:
+  n: 40
+generate:
+  backend: mock
+propose:
+  backend: mock
+train:
+  backend: yolo
+  task: detect
+  min_accepted_images: 200

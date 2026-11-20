@@ -1,0 +1,72 @@
+{
+ "MouseWorld-Track (default)": {
+  "clips": 4,
+  "correct_pct": 100.0,
+  "fixes": 0,
+  "false": 0,
+  "missed": 0,
+  "s_per_s": 14.4,
+  "gpu": 2.412109375,
+  "rss": 9.091796875
+ },
+ "MouseWorld-DET-Lite + simple tracker (CPU)": {
+  "clips": 4,
+  "correct_pct": 99.7560975609756,
+  "fixes": 2,
+  "false": 0,
+  "missed": 0,
+  "s_per_s": 18.53076923076923,
+  "gpu": 0.0,
+  "rss": 0.0
+ },
+ "SAM 2.1-L alone": {
+  "clips": 4,
+  "correct_pct": 99.95121951219512,
+  "fixes": 0,
+  "false": 1,
+  "missed": 1,
+  "s_per_s": 1.0307692307692307,
+  "gpu": 1.8310546875,
+  "rss": 6.044921875
+ },
+ "SAM 2.1-S alone": {
+  "clips": 4,
+  "correct_pct": 92.82926829268293,
+  "fixes": 3,
+  "false": 136,
+  "missed": 137,
+  "s_per_s": 0.9723076923076923,
+  "gpu": 0.7548828125,
+  "rss": 6.0244140625
+ },
+ "SAM 2.1-T alone": {
+  "clips": 4,
+  "correct_pct": 100.0,
+  "fixes": 0,
+  "false": 0,
+  "missed": 0,
+  "s_per_s": 0.9507692307692307,
+  "gpu": 0.7138671875,
+  "rss": 5.9775390625
+ },
+ "SAM 3.1 alone": {
+  "clips": 4,
+  "correct_pct": 99.46341463414635,
+  "fixes": 2,
+  "false": 964,
+  "missed": 5,
+  "s_per_s": 1.0646153846153847,
+  "gpu": 25.17578125,
+  "rss": 7.4326171875
+ },
+ "MouseWorld-DET + simple tracker": {
+  "clips": 4,
+  "correct_pct": 99.70731707317073,
+  "fixes": 2,
+  "false": 0,
+  "missed": 0,
+  "s_per_s": 0.7323076923076923,
+  "gpu": 0.32421875,
+  "rss": 1.8759765625
+ }
+}

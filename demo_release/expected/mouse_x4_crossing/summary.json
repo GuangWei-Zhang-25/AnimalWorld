@@ -1,0 +1,77 @@
+{
+ "video": "mouse_x4_crossing.mp4",
+ "animalworld": "0.2.0",
+ "engine": "full",
+ "device": "NVIDIA H100 80GB HBM3 (79.2 GB)",
+ "models": [
+  "MouseWorld-DET",
+  "MouseWorld-Track",
+  "MouseWorld-Pose"
+ ],
+ "tracker": "MouseWorld-Track, rule set v7j; detector for the witnesses: the scored pair epoch5 + mid_1408 (default); witnesses: SAM 2.1-L forward/backward from two detector seeds, local re-tracks, detector at camera rate; WITHOUT the SAM 3.1 text-prompt witness (default: its weights are gated; option --sam3 turns it on). On the 34 public benchmark clips the scored pair needed 20 identity fixes (73 per hour) without SAM 3.1 and 21 (76 per hour) with it",
+ "tracker_detector": "scored_pair",
+ "animals": 4,
+ "animals_auto_count": 4,
+ "count_confirmed_by": "user",
+ "camera_fps": 30.0,
+ "analysed_every_nth_frame": 3,
+ "analysis_fps": 10.0,
+ "seconds_analysed": 15.0,
+ "output_every_nth_frame": 1,
+ "rows_tracked": 600,
+ "rows_filled": 1192,
+ "rows_interpolated": 0,
+ "sam3": false,
+ "frames_analysed": 448,
+ "frames_with_all_animals": 448,
+ "frames_with_all_animals_pct": 100.0,
+ "rows": 1792,
+ "rows_with_box": 1792,
+ "rows_with_keypoints": 1792,
+ "rows_flagged": 0,
+ "frames_per_id": {
+  "1": 448,
+  "2": 448,
+  "3": 448,
+  "4": 448
+ },
+ "body_length_px": 186.6,
+ "windows": [
+  {
+   "window": 0,
+   "start_s": 0.0,
+   "seconds": 15.0,
+   "status": "confirmed",
+   "contacts": 5,
+   "flagged_contacts": 0,
+   "witnesses": [
+    "F",
+    "B",
+    "F2",
+    "B2",
+    "D",
+    "Q (step quorum, escalation)"
+   ]
+  }
+ ],
+ "seams": [],
+ "warnings": [],
+ "overlay_codec": "H.264",
+ "note": "Nothing here was checked by a person. Look at overlay.mp4 before using the tracks; rows marked 'flagged' are moments the tracker itself was unsure about.",
+ "seconds_of_computing": 224,
+ "timings_s": {
+  "decoding the video to frames": 8.1,
+  "MouseWorld-DET on sample frames": 13.2,
+  "animal count (incl. its detector pass)": 13.5,
+  "MouseWorld-DET on every camera frame": 30.3,
+  "tracker detector A on every analysed frame": 17.7,
+  "SAM 2.1 forward / backward witnesses (seed A)": 38.1,
+  "SAM 2.1 local two-ended re-tracks through contacts": 35.4,
+  "detector at camera rate through long contacts": 17.7,
+  "tracker detector B on every analysed frame": 17.7,
+  "SAM 2.1 forward / backward witnesses (seed B)": 37.8,
+  "MouseWorld-Track rules (v7j)": 0.9,
+  "MouseWorld-Pose on one crop per animal": 16.2,
+  "writing tracks, masks, overlay, summary": 10.2
+ }
+}
