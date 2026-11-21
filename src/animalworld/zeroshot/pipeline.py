@@ -72,6 +72,10 @@ class Stopped(Exception):
     pass
 
 
+class NothingFound(RuntimeError):
+    """A detector pass returned no detection at all (not an error of the program: a result)."""
+
+
 class StepError(RuntimeError):
     pass
 
@@ -80,7 +84,7 @@ class Options:
     def __init__(self, engine: str = "auto", n_animals: Optional[int] = None, window_s: float = 60.0, overlap_s: float = 2.0,
                  analysis_fps: float = 10.0, max_seconds: Optional[float] = None, keep_work: bool = False, count_frames: int = 40,
                  supervisor: str = "v7j", prompt: str = "mouse", tracker_detector: str = None, sam3: bool = None,
-                 all_frames: bool = True):
+                 all_frames: bool = True, fill: str = "sam2", zoom: str = "auto"):
         self.engine, self.n_animals, self.window_s, self.overlap_s = engine, n_animals, float(window_s), float(overlap_s)
         self.analysis_fps, self.max_seconds, self.keep_work = float(analysis_fps), max_seconds, bool(keep_work)
         self.count_frames, self.supervisor, self.prompt = int(count_frames), supervisor, prompt
@@ -93,6 +97,15 @@ class Options:
         # Rows for EVERY camera frame: the tracker runs at its scored rate (about 10 per second); the frames in between are
         # filled from per-frame MouseWorld-DET detections attached to the tracked identities (see fill_rows).
         self.all_frames = bool(all_frames)
+        # Where the box / outline of every output row comes from. "sam2" (default): one final SAM 2.1 propagation at the output
+        # frame rate, anchored on the resolved identities, so the geometry has ONE source on every frame. "detector": the
+        # earlier behaviour (MouseWorld-DET's own box on every frame), faster, and it flickers between frames.
+        if fill not in ("sam2", "detector"):
+            raise ValueError("fill must be 'sam2' or 'detector'")
+        self.fill = fill
+        # "auto": look at the whole clip first and analyse zoomed regions when the animals are small in the frame (zoom.py);
+        # "off": always the whole frame; otherwise the path of a region file.
+        self.zoom = zoom or "auto"
 
 
 class Job:
@@ -114,6 +127,8 @@ class Job:
         self.engine: dict = {}
         self.stop = threading.Event()
         self.timings: Dict[str, float] = {}             # seconds per stage, written to summary.json
+        self.plan: dict = {}                            # whole frame or zoomed regions (zoom.plan)
+        self.count_det: dict = {}
         self.on_change: Callable[["Job"], None] = lambda job: None
         self._log_lock = threading.Lock()
 
@@ -290,6 +305,8 @@ def run_step(job: Job, label: str, role: str, script: str, args: List[str] = (),
     th.join(timeout=5)
     job.log(f"--- {label}: exit {pr.returncode} after {time.time() - t0:.0f} s")
     job.timings[label] = round(job.timings.get(label, 0.0) + time.time() - t0, 1)
+    if pr.returncode != 0 and script in ("detect_dense.py", "detect_local.py") and any("need at least one array" in x for x in tail):
+        raise NothingFound(f"{label}: the detector found no animal on any frame")
     if pr.returncode != 0:
         raise StepError(f"{label} failed (exit {pr.returncode}): " + " | ".join(tail[-4:]))
 
@@ -390,9 +407,7 @@ def count(job: Job) -> int:
             run_step(job, "MouseWorld-DET on sample frames", "det", "detect_dense.py",
                      env=dict(MWT_ROOT=str(root), MWT_AGENT=str(root / "det"), MWT_DET_CKPT=str(W.resolve("mouseworld-det"))))
             D = CB.load_det(root / "det" / "work" / f"video__count_000000_{len(idx) - 1:06d}" / "det.npz")
-        except StepError as e:
-            if "need at least one array" not in str(e):
-                raise
+        except NothingFound:
             job.log("the detector found nothing on any sample frame")
             D = dict(t=np.zeros(0, int), score=np.zeros(0), area=np.zeros(0), c=np.zeros((0, 2)), box=np.zeros((0, 4)), T=len(idx))
         boxes = [[(D["box"][i], float(D["score"][i])) for i in np.flatnonzero(D["t"] == t)] for t in range(len(idx))]
@@ -408,6 +423,9 @@ def count(job: Job) -> int:
         boxes = [[(i["box"], i["score"]) for i in f] for f in dets]
     n, bl, c = count_rule(D)
     job.n_auto = int(n)
+    # what the whole-frame pass saw on the sample frames, for the scout (zoom.py)
+    job.count_det = dict(idx=idx, dets=[dict(t=k, box=[float(v) for v in b], score=float(s_), c=((float(b[0]) + float(b[2])) / 2, (float(b[1]) + float(b[3])) / 2),
+                                             area=0.6 * (float(b[2]) - float(b[0])) * (float(b[3]) - float(b[1]))) for k in range(len(idx)) for b, s_ in boxes[k]])
     # the sheet: six sample frames with every detection drawn and the per-frame count
     pick = _sample(len(idx), 6)
     tiles = []
@@ -542,22 +560,33 @@ def track_full(job: Job, N: int) -> dict:
             fclips.append(dict(_clip(job, f"w{k:04d}", n, N), step=1))
         write_json(froot / "clips.json", {"rule": "camera-rate frames, written by animalworld.zeroshot", "clips": fclips})
         job.set("tracking", p, "MouseWorld-DET on every camera frame")
-        run_step(job, "MouseWorld-DET on every camera frame", "det", "detect_dense.py",
-                 env=dict(MWT_ROOT=str(froot), MWT_AGENT=str(froot / "det"), MWT_DET_CKPT=str(W.resolve("mouseworld-det"))))
+        try:
+            run_step(job, "MouseWorld-DET on every camera frame", "det", "detect_dense.py",
+                     env=dict(MWT_ROOT=str(froot), MWT_AGENT=str(froot / "det"), MWT_DET_CKPT=str(W.resolve("mouseworld-det"))))
+        except NothingFound:
+            raise StepError(NO_ANIMAL)
         p += 0.08
-    for label, role, script, args, env, w in steps:
-        if fill and Dm != A and env.get("MWT_AGENT") == str(Dm):
-            continue                      # the camera-rate pass above already holds MouseWorld-DET's detections of the analysed frames
-        job.set("tracking", p, label)
-        run_step(job, label, role, script, args, env)
-        p += 0.52 * w
+    try:
+        checked = False
+        for label, role, script, args, env, w in steps:
+            if fill and Dm != A and env.get("MWT_AGENT") == str(Dm):
+                continue                      # the camera-rate pass above already holds MouseWorld-DET's detections of the analysed frames
+            if role != "det" and not checked:
+                checked = True                # the tracker's own detector found nothing at all: the SAM / rule steps have nothing to start from
+                if confident_detections(A / "work") == 0:
+                    raise NothingFound("the tracker's detector found no animal on any analysed frame")
+            job.set("tracking", p, label)
+            run_step(job, label, role, script, args, env)
+            p += 0.46 * w
+    except NothingFound as e:
+        job.log(str(e) + "; the remaining tracker steps are skipped")
     # ---- assemble: positions, identities across seams, flags
     sup = {}
     f = root / f"supervisor_summary_{ver}.json"
     if f.exists():
         sup = json.loads(f.read_text()).get(ver, {})
     TA = m["frames"]
-    X = np.full((TA, N, 2), np.nan); flagged = np.zeros(TA, bool); bls = []; seams = []; prev_end = -1; have = False; win_info = []
+    X = np.full((TA, N, 2), np.nan); flagged = np.zeros(TA, bool); bls = []; seams = []; prev_end = -1; have = False; win_info = []; fallback_used = []
     from .mwtrack import core_base as CB
     for k, (a0, T) in enumerate(wins):
         name = f"video__w{k:04d}"; key = f"000000_{T - 1:06d}"
@@ -569,10 +598,19 @@ def track_full(job: Job, N: int) -> dict:
         win_info.append(info)
         if not pf.exists():
             why = "no frame with all animals apart was found (the tracker cannot start)" if not tf.exists() else s.get("error", "the rule step gave no output")
-            job.warnings.append(f"{info['start_s']:.0f}-{info['start_s'] + info['seconds']:.0f} s: NOT TRACKED: {why}")
-            have = False
-            continue
-        Xw = _pts(pf, T, N); bl = float(np.load(tf)["BL"]); bls.append(bl)
+            Xw, bl = _fallback_positions(job, k, T, N, Dm, fill, step)
+            if Xw is None:
+                job.warnings.append(f"{info['start_s']:.0f}-{info['start_s'] + info['seconds']:.0f} s: NOT TRACKED: {why}; and no detection to fall back on")
+                info["status"] = "NOT TRACKED"
+                have = False
+                continue
+            job.warnings.append(f"{info['start_s']:.0f}-{info['start_s'] + info['seconds']:.0f} s: MouseWorld-Track could not start ({why}). "
+                                "FALLBACK used for this part: detector + simple position tracker; identities are NOT reliable and every row is flagged")
+            info["status"] = "FALLBACK (simple tracker)"; fallback_used.append(k)
+            flagged[a0: a0 + T] = True
+        else:
+            Xw = _pts(pf, T, N); bl = float(np.load(tf)["BL"])
+        bls.append(bl)
         perm = list(range(N))
         if have and prev_end >= a0:
             ov = slice(a0, prev_end + 1)
@@ -630,6 +668,43 @@ def track_full(job: Job, N: int) -> dict:
                     x0, y0, x1, y1 = [int(v) for v in D["box"][d]]
                     r.update(box=[x0, y0, x1, y1], score=float(D["score"][d]), mask=(D["mbuf"][D["moff"][d]:D["moff"][d + 1]].copy(), y1 - y0, x1 - x0))
         done_until = a0 * S_ + S_ * (T - 1)
+    if not any(frames):
+        raise StepError(NO_ANIMAL)
+    # ---- ONE geometry source for every output frame: SAM 2.1 at the output rate, anchored on the resolved identities
+    geom = None
+    if job.opt.fill == "sam2" and BL > 0:
+        job.set("tracking", 0.74, "SAM 2.1 at the output frame rate (stable boxes and outlines)")
+        geom = _stable_geometry(job, root, wins, X, N, BL, S_, fill, Dm)
+        # analysed frames on which an identity's stable mask does not contain the tracker's own position (see sam_row_consistent);
+        # the frames between two analysed frames are not given the mask either when one of the two analysed frames failed
+        tracked_ok: Dict[int, list] = {}
+        for g in range(NO):
+            for r in frames[g]:
+                if r["source"] == "tracked":
+                    st = geom["rows"].get((g, r["id"] - 1))
+                    tracked_ok.setdefault(r["id"], []).append((g, st is None or not st[3] or sam_row_consistent((r["x"], r["y"]), st[0], BL)))
+        for g in range(NO):
+            for r in frames[g]:
+                r["det_box"] = r["box"]
+                st = geom["rows"].get((g, r["id"] - 1))
+                if st is not None and st[3] and not bracket_consistent(tracked_ok.get(r["id"], []), g):
+                    st = None                                          # the mask is on another animal around here: not used
+                    geom["inconsistent"] = geom.get("inconsistent", 0) + 1
+                if st is not None and st[3]:
+                    box, c, mk, _ = st
+                    if r["box"]:
+                        r["agree"] = _iou(r["box"], box) >= 0.3
+                    r["box"], r["mask"], r["geom"] = [int(v) for v in box], mk, "sam2"
+                    if r["source"] == "tracked":
+                        r["tx"], r["ty"] = r["x"], r["y"]              # the tracker's own position, kept in track_x / track_y
+                    else:
+                        r["source"] = "filled"
+                    r["x"], r["y"] = float(c[0]), float(c[1])          # ONE source for the position too: the centre of the stable mask
+                else:
+                    r["geom"] = "detector" if r["box"] else "none"
+    n_rej = reject_jumps(frames, BL, m["fps"] / (step if not fill else 1) if not fill else m["fps"])
+    if n_rej:
+        job.log(f"{n_rej} detector box(es) were rejected: they would have moved an animal further in one frame than an animal can move")
     # ---- keypoints (MouseWorld-Pose, top-down on the attached boxes)
     job.set("tracking", 0.82, "MouseWorld-Pose keypoints")
     fpath = (lambda g: job.work / "native" / f"{g:06d}.jpg") if fill else (lambda g: frame_path(job, g))
@@ -648,7 +723,10 @@ def track_full(job: Job, N: int) -> dict:
             if ok:
                 r["kp"], r["kc"] = kp, kc
     td = job.opt.tracker_detector
-    return dict(frames=frames, body_length_px=BL, windows=win_info, seams=seams, supervisor=ver, camera_rate=fill,
+    return dict(frames=frames, body_length_px=BL, windows=win_info, seams=seams, supervisor=ver, camera_rate=fill, fallback_windows=len(fallback_used),
+                geometry=dict(source="SAM 2.1 propagation at the output frame rate, anchored on the resolved identities; rows where it disagreed with "
+                                     "the resolved position keep the detector's box" if geom else "MouseWorld-DET's own box on every frame (option --fill detector)",
+                              **({k: geom.get(k, 0) for k in ("seeds", "repairs", "checked", "bad", "inconsistent")} if geom else {})),
                 models=["MouseWorld-DET", "MouseWorld-Track", "MouseWorld-Pose"], tracker_detector=td, sam3=job.opt.sam3,
                 tracker=f"MouseWorld-Track, rule set {ver}; detector for the witnesses: "
                         + {"strongest": "MouseWorld-DET alone (option 'strongest': about 25 % less computing; 42 identity fixes on the 34 public benchmark "
@@ -662,6 +740,174 @@ def track_full(job: Job, N: int) -> dict:
                         + (f", SAM 3.1 text prompt '{job.opt.prompt}' (option --sam3)" if job.opt.sam3 else
                            "; WITHOUT the SAM 3.1 text-prompt witness (default: its weights are gated; option --sam3 turns it on)")
                         + ". On the 34 public benchmark clips the scored pair needed 20 identity fixes (73 per hour) without SAM 3.1 and 21 (76 per hour) with it")
+
+
+def confident_detections(work: Path, cut: float = 0.4) -> int:
+    """Confident detections (score >= cut, the tracker's SEED_SCORE) in every det.npz under `work`; -1 when there is no det.npz."""
+    fs = sorted(Path(work).glob("*/det.npz"))
+    if not fs:
+        return -1
+    n = 0
+    for f in fs:
+        with np.load(f) as z:
+            n += int((np.asarray(z["score"], float) >= cut).sum())
+    return n
+
+
+NO_ANIMAL = ("no animal was found in this video: the detector returned nothing on any frame. If animals are visible, they may be too small, "
+             "too dark or too bright for the pretrained models; nothing was tracked")
+
+
+def _iou(a, b) -> float:
+    iw = max(0.0, min(a[2], b[2]) - max(a[0], b[0])); ih = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+    u = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - iw * ih
+    return iw * ih / u if u > 0 else 0.0
+
+
+def _window_det(job: Job, k: int, T: int, Dm: Path, fill: bool, step: int) -> Optional[Path]:
+    df = (job.work / "fill" / "det" / "work" / f"video__w{k:04d}_000000_{step * (T - 1):06d}" / "det.npz") if fill else \
+         (Dm / "work" / f"video__w{k:04d}_000000_{T - 1:06d}" / "det.npz")
+    return df if df.exists() else None
+
+
+def _fallback_positions(job: Job, k: int, T: int, N: int, Dm: Path, fill: bool, step: int) -> tuple:
+    """Positions for a window MouseWorld-Track could not start in (no frame with all animals apart): the detector's boxes on the
+    analysed frames linked by the simple position tracker. -> ((T, N, 2) or None, body length)."""
+    from .. import registry
+    from .mwtrack import core_base as CB
+    df = _window_det(job, k, T, Dm, fill, step)
+    if df is None:
+        return None, 0.0
+    D = CB.load_det(df); S_ = step if fill else 1
+    dets = [[] for _ in range(T)]
+    for i, t in enumerate(D["t"]):
+        if int(t) % S_ == 0 and int(t) // S_ < T:
+            dets[int(t) // S_].append(dict(box=[float(v) for v in D["box"][i]], score=float(D["score"][i]), c=D["c"][i]))
+    if not any(dets):
+        return None, 0.0
+    ids = registry.create("trackers", "iou", {"n_animals": N}).track(dets)
+    Xw = np.full((T, N, 2), np.nan)
+    for t in range(T):
+        for d, tid in zip(dets[t], ids[t]):
+            if 0 <= tid < N:
+                Xw[t, tid] = d["c"]
+    conf = D["score"] >= 0.4
+    bl = 2.0 * float(np.sqrt(np.median(D["area"][conf] if conf.any() else D["area"])))
+    return (Xw if np.isfinite(Xw).any() else None), bl
+
+
+def _stable_geometry(job: Job, root: Path, wins: List[tuple], X: np.ndarray, N: int, BL: float, S_: int, fill: bool, Dm: Path) -> dict:
+    """Run mwtrack/final_masks.py per window. -> {"rows": {(output frame, identity): (box, centroid, packed mask, ok)}, counts}"""
+    rows: Dict[tuple, tuple] = {}; tot = dict(seeds=0, repairs=0, checked=0, bad=0)
+    step = int(job.meta["step"])
+    for k, (a0, T) in enumerate(wins):
+        df = _window_det(job, k, T, Dm, fill, step)
+        Xw = X[a0:a0 + T]
+        if df is None or not np.isfinite(Xw).any():
+            continue
+        fdir = (job.work / "fill" if fill else root) / "data" / "video" / f"w{k:04d}" / "frames"
+        n = S_ * (T - 1) + 1
+        req = job.work / f"final_{k:04d}.json"; outp = job.work / f"final_{k:04d}.npz"
+        req.write_text(json.dumps(dict(frames=str(fdir), n=n, step=S_, N=N, BL=BL, det=str(df),
+                                       X=[[None if not np.isfinite(p[0]) else [float(p[0]), float(p[1])] for p in row] for row in Xw])))
+        run_step(job, "SAM 2.1 at the output frame rate (stable boxes and outlines)", "sam2", "final_masks.py", [req, outp],
+                 env=dict(MWT_SAM2_CKPT=str(W.resolve("sam2.1-hiera-large"))))
+        z = np.load(outp)
+        for key in tot:
+            tot[key] += int(z[key])
+        for i in range(len(z["frame"])):
+            g = a0 * S_ + int(z["frame"][i]); key = (g, int(z["id"][i]))
+            if key in rows:
+                continue                                         # the overlap of two windows: the earlier window's row stays
+            x0, y0, x1, y1 = [int(v) for v in z["box"][i]]
+            rows[key] = ((x0, y0, x1, y1), z["c"][i], (z["mbuf"][z["moff"][i]:z["moff"][i + 1]].copy(), y1 - y0, x1 - x0), bool(z["ok"][i]))
+    return dict(rows=rows, **tot)
+
+
+MAX_SPEED_BL_S = 15.0        # body lengths per second: faster than a mouse runs; a larger step is a wrong attachment (a reflection, another animal)
+
+
+SAM_POS_MARGIN_BL = 0.1    # the identity's own position may lie this far (body lengths) outside the stable mask's box
+
+
+def sam_row_consistent(pos, box, BL: float) -> bool:
+    """The stable SAM 2.1 geometry is used on an analysed frame only if the tracker's resolved position of that identity lies
+    inside the mask's box, within SAM_POS_MARGIN_BL body lengths (the frames in between: see bracket_consistent; a filled
+    frame's detector box is NOT used as the test, because that box is itself what flickers). A mask that drifted onto the neighbouring animal (two mice touching at the start of a clip)
+    fails this test even when its centre is still within the repair distance of final_masks.py."""
+    m = SAM_POS_MARGIN_BL * max(0.0, float(BL))
+    return box[0] - m <= pos[0] <= box[2] + m and box[1] - m <= pos[1] <= box[3] + m
+
+
+def bracket_consistent(tracked: List[tuple], g: int) -> bool:
+    """tracked: [(analysed output frame, mask consistent with the tracker there)] of one identity, in frame order. A frame
+    passes when it is an analysed frame that passed, or lies between two analysed frames (the nearest on each side, where
+    they exist) that both passed."""
+    import bisect
+    gs = [t[0] for t in tracked]
+    i = bisect.bisect_left(gs, g)
+    if i < len(gs) and gs[i] == g:
+        return bool(tracked[i][1])
+    lo = tracked[i - 1][1] if i > 0 else True
+    hi = tracked[i][1] if i < len(gs) else True
+    return bool(lo and hi)
+
+
+def reject_jumps(frames: List[List[dict]], BL: float, out_fps: float) -> int:
+    """A row whose geometry comes from a single detector box (not from the stable propagation) and that would move its identity
+    further than MAX_SPEED_BL_S allows since that identity's last accepted position keeps its place in the table but loses the
+    box: the conflicting detection is recorded as rejected (geometry 'rejected'), never drawn as the animal."""
+    if BL <= 0 or out_fps <= 0:
+        return 0
+    last: Dict[int, tuple] = {}; n = 0
+    for g, rows in enumerate(frames):
+        for r in rows:
+            p = last.get(r["id"])
+            if r.get("box") and r.get("geom") != "sam2" and r.get("source") != "tracked" and p is not None:
+                lim = MAX_SPEED_BL_S * BL * (g - p[0]) / out_fps
+                if math.hypot(r["x"] - p[1], r["y"] - p[2]) > max(lim, 0.5 * BL):
+                    r.update(box=None, mask=None, kp=None, kc=None, score=None, geom="rejected", source="interpolated", status="flagged")
+                    r["x"], r["y"] = p[1], p[2]
+                    n += 1
+                    continue
+            if r.get("box"):
+                last[r["id"]] = (g, r["x"], r["y"])
+    return n
+
+
+def jitter(frames: List[List[dict]], phase: int = 1) -> dict:
+    """Frame-to-frame instability of the geometry, per output-frame transition g -> g + 1 of the same identity.
+    edge: mean over the four box edges of |edge motion - centroid motion along that axis| (px): motion of the box that the
+    animal's own movement does not explain. keypoint: the same for each keypoint. `by_phase`: the edge value split by
+    (g mod phase), phase = output frames per analysed frame; a source that alternates shows up as unequal phases.
+    `alternation` = largest / smallest phase mean (1.0 = no pattern)."""
+    edge: Dict[int, list] = {}; kpv: list = []; cen: list = []
+    last: Dict[int, tuple] = {}
+    for g, rows in enumerate(frames):
+        cur = {}
+        for r in rows:
+            if not r.get("box"):
+                continue
+            cur[r["id"]] = (g, r["x"], r["y"], r["box"], r.get("kp"), r.get("kc"))
+            p = last.get(r["id"])
+            if p is None or p[0] != g - 1:
+                continue
+            dx, dy = r["x"] - p[1], r["y"] - p[2]
+            e = (abs(r["box"][0] - p[3][0] - dx) + abs(r["box"][2] - p[3][2] - dx) + abs(r["box"][1] - p[3][1] - dy) + abs(r["box"][3] - p[3][3] - dy)) / 4.0
+            edge.setdefault((g - 1) % max(1, phase), []).append(e); cen.append(math.hypot(dx, dy))
+            if r.get("kp") is not None and p[4] is not None:
+                d = np.hypot(*(np.asarray(r["kp"]) - np.asarray(p[4]) - [dx, dy]).T)
+                okk = (np.asarray(r["kc"]) >= 0.3) & (np.asarray(p[5]) >= 0.3)
+                if okk.any():
+                    kpv.append(float(d[okk].mean()))
+        last = cur
+    allv = [v for vs in edge.values() for v in vs]
+    if not allv:
+        return dict(transitions=0)
+    ph = {int(k): round(float(np.mean(v)), 2) for k, v in sorted(edge.items())}
+    return dict(transitions=len(allv), edge_px=round(float(np.mean(allv)), 2), keypoint_px=round(float(np.mean(kpv)), 2) if kpv else None,
+                centroid_px=round(float(np.mean(cen)), 2), by_phase=ph,
+                alternation=round(max(ph.values()) / max(1e-6, min(ph.values())), 2) if len(ph) > 1 else 1.0)
 
 
 def prior_positions(X: np.ndarray, g: int, S_: int) -> tuple:
@@ -824,7 +1070,10 @@ class _Video:
             self.vw.release()
 
 
-def _draw(cv2, im, rows: List[dict], trails: Dict[int, list], sc: float):
+def _draw(cv2, im, rows: List[dict], trails: Dict[int, list], sc: float, masks_only: bool = False):
+    """Draw the rows of one frame. Colour, line width and the label's place follow fixed rules (identity -> colour; label at
+    the box's top-left corner), so nothing changes from frame to frame except the geometry itself.
+    masks_only: the segmentation alone (translucent fill + outline per identity; no box, no skeleton, no trail, no label)."""
     lw = max(1, int(round(im.shape[1] / 640)))
     for r in rows:
         col = COLOURS[(r["id"] - 1) % len(COLOURS)]
@@ -838,9 +1087,12 @@ def _draw(cv2, im, rows: List[dict], trails: Dict[int, list], sc: float):
             x1 = min(x1, im.shape[1]); y1 = min(y1, im.shape[0]); mk = mk[: y1 - y0, : x1 - x0]
             if mk.size:
                 roi = im[y0:y1, x0:x1]
-                roi[mk > 0] = (0.65 * roi[mk > 0] + 0.35 * np.array(col)).astype(np.uint8)
+                a_ = 0.45 if masks_only else 0.35
+                roi[mk > 0] = ((1 - a_) * roi[mk > 0] + a_ * np.array(col)).astype(np.uint8)
                 cs, _ = cv2.findContours(mk, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 cv2.drawContours(roi, cs, -1, col, lw)
+        if masks_only:
+            continue
         tr = trails.setdefault(r["id"], [])
         tr.append((int(r["x"] * sc), int(r["y"] * sc))); del tr[:-25]
         for a, b in zip(tr[:-1], tr[1:]):
@@ -872,7 +1124,8 @@ def write_outputs(job: Job, res: dict, N: int) -> dict:
     cam = bool(res.get("camera_rate")); step = 1 if cam else m["step"]              # camera frames per output frame
     fpath = (lambda g: job.work / "native" / f"{g:06d}.jpg") if cam else (lambda g: frame_path(job, g))
     job.set("tracking", 0.88, "writing tracks.csv and masks.npz")
-    cols = ["video_frame", "t_s", "id", "x", "y", "x0", "y0", "x1", "y1", "det_score", "status", "source"] + [f"{k}_{a}" for k in KP for a in ("x", "y", "conf")]
+    cols = ["video_frame", "t_s", "id", "x", "y", "x0", "y0", "x1", "y1", "det_score", "status", "source"] + [f"{k}_{a}" for k in KP for a in ("x", "y", "conf")] \
+        + ["region", "zoom", "geometry", "detector_agrees", "track_x", "track_y"]
     mf, mi, mb, buf, off = [], [], [], [], [0]
     n_rows = n_box = n_kp = n_flag = 0
     n_src = {"tracked": 0, "filled": 0, "interpolated": 0}
@@ -892,6 +1145,9 @@ def write_outputs(job: Job, res: dict, N: int) -> dict:
                     n_kp += 1
                 else:
                     row += [""] * (3 * len(KP))
+                row += [r.get("region", 0), f"{r.get('zoom', 1.0):.3g}", r.get("geom") or ("detector" if r["box"] else "none"),
+                        "" if r.get("agree") is None else int(bool(r["agree"])),
+                        f"{r['tx']:.2f}" if r.get("tx") is not None else "", f"{r['ty']:.2f}" if r.get("ty") is not None else ""]
                 w.writerow(row)
                 n_rows += 1; n_box += bool(r["box"]); n_flag += r["status"] == "flagged"; per_id[r["id"]] = per_id.get(r["id"], 0) + 1
                 if r["mask"] is not None:
@@ -903,13 +1159,37 @@ def write_outputs(job: Job, res: dict, N: int) -> dict:
     sc = min(1.0, 1280.0 / m["W"]); ow, oh = int(round(m["W"] * sc)) // 2 * 2, int(round(m["H"] * sc)) // 2 * 2
     vid = _Video(job.dir / "overlay.mp4", ow, oh, fps / step, cv2)
     pick = set(_sample(TA, 12)); tiles = []; trails: Dict[int, list] = {}
+    # zoom: a second overlay that shows only the analysed regions, side by side and enlarged (the unused part of the frame is gone)
+    regs = res.get("regions") or []; vid2 = None
+    if regs:
+        Hc = 480.0; tws = [(rg["box"][2] - rg["box"][0]) * Hc / max(1, rg["box"][3] - rg["box"][1]) for rg in regs]
+        k2 = min(1.0, 1920.0 / (sum(tws) + 6 * (len(regs) - 1))); Hc = int(Hc * k2) // 2 * 2; tws = [max(2, int(t * k2) // 2 * 2) for t in tws]
+        w2 = (sum(tws) + 6 * (len(regs) - 1) + 1) // 2 * 2
+        vid2 = _Video(job.dir / "overlay_regions.mp4", w2, Hc, fps / step, cv2); trails2: List[Dict[int, list]] = [dict() for _ in regs]
+    vid3 = _Video(job.dir / "overlay_masks.mp4", ow, oh, fps / step, cv2)       # the segmentation alone, to judge the masks
     for g in range(TA):
         if g % 20 == 0:
             job.check()
             job.set(progress=0.90 + 0.08 * g / max(1, TA), message=f"drawing the overlay ({g}/{TA})")
         im = cv2.imread(str(fpath(g)))
+        if vid2 is not None:
+            canvas = np.full((Hc, w2, 3), 255, np.uint8); xo = 0
+            for i_, rg in enumerate(regs):
+                x0, y0, x1, y1 = rg["box"]; sx = tws[i_] / float(x1 - x0)
+                t_ = cv2.resize(im[y0:y1, x0:x1], (tws[i_], Hc), interpolation=cv2.INTER_CUBIC if sx > 1 else cv2.INTER_AREA)
+                rr = [dict(r, x=r["x"] - x0, y=r["y"] - y0, box=[r["box"][0] - x0, r["box"][1] - y0, r["box"][2] - x0, r["box"][3] - y0] if r["box"] else None,
+                           kp=(np.asarray(r["kp"]) - [x0, y0]) if r["kp"] is not None else None) for r in frames[g] if r.get("region") == rg["region"]]
+                canvas[:, xo:xo + tws[i_]] = _draw(cv2, t_, rr, trails2[i_], sx)
+                xo += tws[i_] + 6
+            cv2.putText(canvas, f"{g * step / fps:7.2f} s", (8, Hc - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
+            cv2.putText(canvas, f"{g * step / fps:7.2f} s", (8, Hc - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+            vid2.write(canvas)
         if sc != 1.0 or im.shape[1] != ow or im.shape[0] != oh:
             im = cv2.resize(im, (ow, oh), interpolation=cv2.INTER_AREA)
+        for rg in res.get("regions") or []:                    # the analysed regions, drawn thinly
+            bx = [int(round(v * sc)) for v in rg["box"]]
+            cv2.rectangle(im, (bx[0], bx[1]), (bx[2] - 1, bx[3] - 1), (160, 160, 160), 1)
+        vid3.write(_draw(cv2, im.copy(), frames[g], {}, sc, masks_only=True))
         im = _draw(cv2, im, frames[g], trails, sc)
         cv2.putText(im, f"{g * step / fps:7.2f} s", (8, oh - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA)
         cv2.putText(im, f"{g * step / fps:7.2f} s", (8, oh - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
@@ -917,12 +1197,26 @@ def write_outputs(job: Job, res: dict, N: int) -> dict:
         if g in pick:
             tw = 480; t_ = cv2.resize(im, (tw, max(1, int(round(oh * tw / ow)))), interpolation=cv2.INTER_AREA)
             tiles.append(t_)
-    vid.close()
+    vid.close(); vid3.close()
+    if vid2 is not None:
+        vid2.close()
+    used = sum((rg["box"][2] - rg["box"][0]) * (rg["box"][3] - rg["box"][1]) for rg in regs) / float(m["W"] * m["H"]) if regs else 1.0
+    if regs and res.get("zoom"):
+        res["zoom"]["frame_used_pct"] = round(100.0 * used, 1)
+        res["zoom"]["short"] = f"used {100.0 * used:.0f} % of the frame in {len(regs)} region(s), enlarged x{np.mean([rg['zoom'] for rg in regs]):.1f}"
+        res["zoom"]["text"] = res["zoom"]["short"] + ". " + (res["zoom"].get("text") or "")
     while len(tiles) % 4:
         tiles.append(np.full_like(tiles[0], 255))
     cv2.imwrite(str(job.dir / "contact_sheet.jpg"), np.vstack([np.hstack(tiles[r:r + 4]) for r in range(0, len(tiles), 4)]), [cv2.IMWRITE_JPEG_QUALITY, 88])
     # ---- one-page summary
-    all_n = sum(1 for g in range(TA) if len(frames[g]) == N)
+    # frames in which EVERY counted animal has a box (a row without a box is a position only: the animal was not found there)
+    all_n = sum(1 for g in range(TA) if len({r["id"] for r in frames[g] if r["box"]}) >= N)
+    jit = jitter(frames, m["step"] if cam else 1)
+    n_geom = {}
+    for rows_ in frames:
+        for r in rows_:
+            kgeom = r.get("geom") or ("detector" if r["box"] else "none"); n_geom[kgeom] = n_geom.get(kgeom, 0) + 1
+    fb = int(res.get("fallback_windows") or 0)
     summ = dict(
         video=str(job.video), animalworld=__version__, engine=job.engine["engine"], device=job.engine.get("device"), models=res["models"], tracker=res["tracker"],
         tracker_detector=res.get("tracker_detector"), animals=N, animals_auto_count=job.n_auto, count_confirmed_by="user" if job.opt.n_animals or getattr(job, "confirmed_by_user", False) else "automatic count accepted without a look",
@@ -931,9 +1225,14 @@ def write_outputs(job: Job, res: dict, N: int) -> dict:
         output_every_nth_frame=step, rows_tracked=n_src["tracked"], rows_filled=n_src["filled"], rows_interpolated=n_src["interpolated"],
         sam3=bool(res.get("sam3")), frames_analysed=TA, frames_with_all_animals=all_n, frames_with_all_animals_pct=round(100.0 * all_n / max(1, TA), 1),
         rows=n_rows, rows_with_box=n_box, rows_with_keypoints=n_kp, rows_flagged=n_flag, frames_per_id=per_id,
+        geometry=res.get("geometry"), rows_by_geometry=n_geom, jitter=jit, zoom=res.get("zoom"), regions=res.get("regions"),
+        status=("FALLBACK: MouseWorld-Track could not start; simple tracker used, identities not reliable" if fb else
+                ("ok" if n_box else "no animal found")),
         body_length_px=round(res["body_length_px"], 1), windows=res["windows"], seams=res["seams"], warnings=job.warnings,
         overlay_codec=vid.codec,
-        files=dict(tracks="tracks.csv", masks="masks.npz", overlay="overlay.mp4", contact_sheet="contact_sheet.jpg", count_sheet="count_sheet.jpg", log="run.log"),
+        files=dict(tracks="tracks.csv", masks="masks.npz", overlay="overlay.mp4", overlay_masks="overlay_masks.mp4", contact_sheet="contact_sheet.jpg",
+                   count_sheet="count_sheet.jpg", log="run.log",
+                   **({"overlay_regions": "overlay_regions.mp4"} if regs else {})),
         note="Nothing here was checked by a person. Look at overlay.mp4 before using the tracks; rows marked 'flagged' are moments the tracker itself was unsure about.")
     write_json(job.dir / "summary.json", summ)
     esc = lambda s: str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")      # noqa: E731
@@ -942,7 +1241,11 @@ def write_outputs(job: Job, res: dict, N: int) -> dict:
              ("Analysed", f"{summ['seconds_analysed']} s of video at {summ['camera_fps']} frames/s; identity tracking on every {summ['analysed_every_nth_frame']}. frame; "
                           f"rows written for every {step}. frame ({TA} frames)"),
              ("Row sources", f"tracked {n_src['tracked']}, filled between tracked frames from MouseWorld-DET {n_src['filled']}, interpolated (no detection) {n_src['interpolated']}"),
-             ("All animals found", f"{all_n} of {TA} frames ({summ['frames_with_all_animals_pct']} %)"),
+             ("All animals found", f"{all_n} of {TA} frames ({summ['frames_with_all_animals_pct']} %): frames in which every counted animal has a box"),
+             ("Status", summ["status"]),
+             ("Zoom", (res.get("zoom") or {}).get("text") or "whole frame"),
+             ("Geometry", f"{(res.get('geometry') or {}).get('source', 'n/a')}; rows by source: {n_geom}; frame-to-frame box jitter {jit.get('edge_px')} px "
+                          f"(by phase {jit.get('by_phase')}, alternation {jit.get('alternation')})"),
              ("Rows", f"{n_rows} (with box {n_box}, with keypoints {n_kp}, flagged as unsure {n_flag})"),
              ("Windows", "; ".join(f"{w_['start_s']:.0f} s: {w_['status']} ({w_['contacts']} contacts, {w_['flagged_contacts']} flagged)" for w_ in res["windows"]) or "n/a")]
     html = ["<!doctype html><meta charset='utf-8'><title>Animal World Run: " + esc(job.video.name) + "</title>",
@@ -972,6 +1275,10 @@ def prepare_and_count(job: Job, engine: dict) -> int:
     t0 = time.time()
     n = count(job)
     job.timings["animal count (incl. its detector pass)"] = round(time.time() - t0, 1)
+    from . import zoom as Z
+    t0 = time.time()
+    n = Z.plan(job, n)                                   # looks at the whole clip; may propose regions and a per-region count
+    job.timings["scout (animal size, regions)"] = round(time.time() - t0, 1)
     if job.opt.n_animals:
         job.n = int(job.opt.n_animals)
         if job.n != n:
@@ -991,7 +1298,14 @@ def analyse(job: Job) -> dict:
     t0 = time.time()
     job.set("tracking", 0.20, "starting")
     job.log(f"tracking {N} animal(s)")
-    res = track_full(job, N) if job.engine["engine"] == "full" else track_simple(job, N)
+    from . import zoom as Z
+    plan = getattr(job, "plan", None) or {}
+    if plan.get("zoom"):
+        res = Z.run_regions(job, N)
+    else:
+        res = track_full(job, N) if job.engine["engine"] == "full" else track_simple(job, N)
+        if plan:
+            res["zoom"] = dict(used=False, text=plan.get("text"), size_px_at_input=plan.get("size_px_at_input"))
     t1 = time.time()
     summ = write_outputs(job, res, N)
     job.timings["writing tracks, masks, overlay, summary"] = round(time.time() - t1, 1)
@@ -1000,7 +1314,8 @@ def analyse(job: Job) -> dict:
     write_json(job.dir / "summary.json", summ)
     if not job.opt.keep_work:
         shutil.rmtree(job.work, ignore_errors=True)          # temporary frames and intermediates of THIS run only
-    job.set("done", 1.0, f"done: {summ['frames_with_all_animals_pct']} % of frames with all {N} animals" + (f"; {len(job.warnings)} warning(s)" if job.warnings else ""))
+    job.set("done", 1.0, ("done, but NOT with MouseWorld-Track (simple fallback, identities not reliable): " if summ["status"].startswith("FALLBACK") else "done: ")
+            + f"{summ['frames_with_all_animals_pct']} % of frames with all {N} animals" + (f"; {len(job.warnings)} warning(s)" if job.warnings else ""))
     return summ
 
 

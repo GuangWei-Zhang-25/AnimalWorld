@@ -35,6 +35,37 @@
   "3": 448,
   "4": 448
  },
+ "geometry": {
+  "source": "SAM 2.1 propagation at the output frame rate, anchored on the resolved identities; rows where it disagreed with the resolved position keep the detector's box",
+  "seeds": 4,
+  "repairs": 0,
+  "checked": 600,
+  "bad": 0,
+  "inconsistent": 0
+ },
+ "rows_by_geometry": {
+  "sam2": 1784,
+  "detector": 8
+ },
+ "jitter": {
+  "transitions": 1788,
+  "edge_px": 2.33,
+  "keypoint_px": 5.41,
+  "centroid_px": 5.69,
+  "by_phase": {
+   "0": 2.34,
+   "1": 2.39,
+   "2": 2.25
+  },
+  "alternation": 1.06
+ },
+ "zoom": {
+  "used": false,
+  "text": "whole frame: the animals are about 69 px long at the 504 px model input (zoom starts below 64 px)",
+  "size_px_at_input": 68.8
+ },
+ "regions": null,
+ "status": "ok",
  "body_length_px": 186.6,
  "windows": [
   {
@@ -57,21 +88,32 @@
  "seams": [],
  "warnings": [],
  "overlay_codec": "H.264",
+ "files": {
+  "tracks": "tracks.csv",
+  "masks": "masks.npz",
+  "overlay": "overlay.mp4",
+  "overlay_masks": "overlay_masks.mp4",
+  "contact_sheet": "contact_sheet.jpg",
+  "count_sheet": "count_sheet.jpg",
+  "log": "run.log"
+ },
  "note": "Nothing here was checked by a person. Look at overlay.mp4 before using the tracks; rows marked 'flagged' are moments the tracker itself was unsure about.",
- "seconds_of_computing": 224,
+ "seconds_of_computing": 303,
  "timings_s": {
-  "decoding the video to frames": 8.1,
+  "decoding the video to frames": 8.7,
   "MouseWorld-DET on sample frames": 13.2,
   "animal count (incl. its detector pass)": 13.5,
-  "MouseWorld-DET on every camera frame": 30.3,
-  "tracker detector A on every analysed frame": 17.7,
-  "SAM 2.1 forward / backward witnesses (seed A)": 38.1,
-  "SAM 2.1 local two-ended re-tracks through contacts": 35.4,
+  "scout (animal size, regions)": 0.2,
+  "MouseWorld-DET on every camera frame": 29.7,
+  "tracker detector A on every analysed frame": 17.4,
+  "SAM 2.1 forward / backward witnesses (seed A)": 43.5,
+  "SAM 2.1 local two-ended re-tracks through contacts": 34.2,
   "detector at camera rate through long contacts": 17.7,
-  "tracker detector B on every analysed frame": 17.7,
-  "SAM 2.1 forward / backward witnesses (seed B)": 37.8,
+  "tracker detector B on every analysed frame": 17.4,
+  "SAM 2.1 forward / backward witnesses (seed B)": 37.5,
   "MouseWorld-Track rules (v7j)": 0.9,
-  "MouseWorld-Pose on one crop per animal": 16.2,
-  "writing tracks, masks, overlay, summary": 10.2
+  "SAM 2.1 at the output frame rate (stable boxes and outlines)": 53.7,
+  "MouseWorld-Pose on one crop per animal": 17.1,
+  "writing tracks, masks, overlay, summary": 13.9
  }
 }

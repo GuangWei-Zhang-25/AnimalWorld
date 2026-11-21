@@ -145,6 +145,24 @@ follows the display's pixels per inch, or `ANIMALWORLD_UI_SCALE` (for example `2
 not scale; use the distribution's Python (`python3-tkinter`) for the windows. Dropping files onto the Run window works
 only if the optional package `tkinterdnd2` is installed (untested); the buttons always work.
 
+## Small animals, wide frames, stable outlines
+
+* `--zoom auto` (default). The app first looks at about 40 frames across the clip. If the animals are at least about 64 px
+  long at the detector's 504 px input and the frame is one camera, nothing else happens. Otherwise it also looks at the
+  frame in overlapping pieces and at what moves, finds the regions where animals are active, and analyses each region as
+  its own video, cropped and enlarged up to 4 times; results come back in full-frame pixels with a `region` and a `zoom`
+  column, and `overlay_regions.mp4` shows the regions side by side. Two cameras recorded in one frame are never mixed.
+  `--zoom off` keeps the whole frame; `--zoom FILE` takes a JSON list `[{"box": [x0, y0, x1, y1], "animals": n}, ...]`.
+* `--fill sam2` (default). After the tracker has decided who is who (about 10 times per second), one more SAM 2.1 pass at
+  the camera rate gives the box, outline and position of every row, so consecutive frames come from one source. Rows the
+  propagation could not cover keep the detector's box (`geometry` = `detector`), a detector box that would move an animal
+  impossibly far is rejected (`geometry` = `rejected`), and `detector_agrees` says whether the detector saw the same thing.
+  The tracker's own position on analysed frames is kept in `track_x`, `track_y`. `--fill detector` is the earlier behaviour.
+* Count the animals that move freely. An animal under a cup or behind a grid is not counted. When the regions are
+  zoomed, the count you confirm is split over the regions (it always adds up to your number; each region keeps at least
+  one animal while your number allows). A region in which no animal is detected is dropped and the run says so.
+* Every run also writes `overlay_masks.mp4`: the segmentation alone.
+
 ## Temporary files
 
 Each video gets `<results>/<video>/_work/` next to its results (never `/tmp`): every camera frame as a JPEG, written

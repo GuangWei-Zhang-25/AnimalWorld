@@ -69,6 +69,14 @@ one-page `summary.html`.
   frames in between are filled from MouseWorld-DET's detection on that frame, attached to the tracked identities; the
   column `source` says `tracked`, `filled` or `interpolated` for every row. `--analysis-frames-only` writes the tracked
   frames only.
+* **Small animals in a wide frame: automatic zoom.** The app looks at the whole clip first. If the animals are small in
+  the frame, or the frame is two cameras side by side, it analyses each region where animals are active zoomed in and
+  maps everything back to full-frame pixels; unused parts of the frame are left out. `--zoom off` switches it off,
+  `--zoom REGIONFILE` takes your own regions. When the animals are large enough nothing changes. The animal count you
+  confirm is split over the regions and always adds up to your number.
+* **Stable boxes and outlines.** Box, outline and position of every output frame come from one source: a final SAM 2.1
+  propagation at the camera rate, anchored on the identities the tracker resolved (`--fill detector` gives the earlier,
+  faster per-frame detector boxes, which flicker). `overlay_masks.mp4` shows the segmentation alone.
 * **SAM 3.1 is optional** (`--sam3`, or the checkbox). Its weights are gated by Meta's licence and 3.5 GB, so the
   default does not use it. Measured on the 34 public benchmark clips (16.5 min): 20 identity fixes without it, 21 with.
 * **Other detector settings** (`--tracker-detector strongest`, `strongest_two_seeds`, `strongest_recut`) score worse

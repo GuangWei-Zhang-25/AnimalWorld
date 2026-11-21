@@ -50,3 +50,14 @@ literature UMAP / HDBSCAN map, polarity-inverted dataset copies (available as th
 | `install.sh`, `install.bat` | layout from `mouseworld_app/install.sh` | no model download step |
 
 Not reused from `mouseworld_app`: its light tracker (it failed on real lab videos and is not shipped), its web GUI.
+
+
+## Changes of 20 November 2026 to the vendored tracker tools
+
+* `zeroshot/mwtrack/detect_dense.py`: a window with no detection at all now writes an empty `det.npz` (box (0, 4), c (0, 2))
+  instead of stopping with an error. Detection, duplicate removal and thresholds are unchanged.
+* `zeroshot/mwtrack/pose_frames.py`: the crop interpolation is bicubic when the crop is enlarged (bilinear, as before, when
+  it is shrunk). The model, crop size, margins and preprocessing are unchanged.
+* `zeroshot/mwtrack/final_masks.py` is new and was written for the package: the final SAM 2.1 propagation at the output frame
+  rate. It runs after the rule step and never changes an identity.
+* The rule scripts (`sup_v7j.py`, `sup_v7b.py`, `core_base.py`, `track_fb.py`, `track_local.py`) are untouched.

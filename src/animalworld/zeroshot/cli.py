@@ -34,6 +34,15 @@ def build_parser() -> argparse.ArgumentParser:
                          "second, other values are untested territory)")
     ap.add_argument("--analysis-frames-only", action="store_true",
                     help="write rows only for the frames the tracker analyses (about 10 per second) instead of every camera frame")
+    ap.add_argument("--zoom", default="auto", metavar="auto|off|REGIONFILE",
+                    help="auto (default): look at the whole clip first; when the animals are small in the frame (below about 64 px at the "
+                         "detector's 504 px input) or the frame is two cameras side by side, analyse each region where animals are active zoomed "
+                         "in and map the results back to full-frame pixels. off: always the whole frame. REGIONFILE: a JSON list "
+                         '[{"box": [x0, y0, x1, y1], "animals": n}, ...] in full-frame pixels')
+    ap.add_argument("--fill", default="sam2", choices=("sam2", "detector"),
+                    help="where the box and outline of every output frame come from. sam2 (default): one SAM 2.1 propagation at the output "
+                         "frame rate, anchored on the resolved identities: one source for every frame, stable from frame to frame. "
+                         "detector: MouseWorld-DET's own box on every frame: faster, and the boxes flicker between frames")
     ap.add_argument("--keep-work", action="store_true",
                     help="keep the temporary frames and tracker intermediates (they are always kept when a video fails)")
     return ap
@@ -77,14 +86,15 @@ def main(argv=None) -> int:
         names.add(name)
         job = P.Job(v, a.out, P.Options(engine=eng["engine"], n_animals=a.n_animals, max_seconds=a.max_seconds, window_s=a.window_seconds,
                                         keep_work=a.keep_work, tracker_detector=a.tracker_detector, sam3=a.sam3 or None,
-                                        all_frames=not a.analysis_frames_only, analysis_fps=a.analysis_fps), name=name)
+                                        all_frames=not a.analysis_frames_only, analysis_fps=a.analysis_fps, zoom=a.zoom, fill=a.fill), name=name)
         P.guarded(P.prepare_and_count, job, eng)
         if job.status == "confirm":
             if a.yes:
                 job.n = job.n_auto
                 job.log(f"automatic count {job.n_auto} accepted without a look (--yes)")
             elif sys.stdin.isatty():
-                ans = input(f"{v.name}: {job.n_auto} animal(s) found (look at {job.count_sheet}). Enter to accept, or type the right number: ").strip()
+                ans = input(f"{v.name}: {job.n_auto} animal(s) found (look at {job.count_sheet}). Count only the animals that move freely "
+                            "(not an animal under a cup or behind a grid). Enter to accept, or type the right number: ").strip()
                 job.n = int(ans) if ans.isdigit() and int(ans) > 0 else job.n_auto
                 job.confirmed_by_user = True
             else:
@@ -96,6 +106,10 @@ def main(argv=None) -> int:
             P.guarded(P.analyse, job)
         if job.status == "done":
             print(f"{v.name}: {job.message}\n  results: {job.dir}", flush=True)
+            if (job.plan or {}).get("text"):
+                print("  " + job.plan["text"], flush=True)
+            for w_ in job.warnings[:12]:
+                print("  WARNING: " + w_, flush=True)
         else:
             failed += 1
             print(f"{v.name}: {job.status}: {job.message}\n  log: {job.dir / 'run.log'}", file=sys.stderr, flush=True)

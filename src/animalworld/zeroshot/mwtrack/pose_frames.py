@@ -1,7 +1,11 @@
 """MouseWorld-Pose, top-down: one square crop per box (side = 1.3 x the longer box side, min 16 px) -> 256 px ->
 crop-pose model (conf floor 0.01) -> the instance nearest the crop centre -> keypoints mapped back to the frame.
 Recipe and options of the lab's pose_topdown/improve/r3_infer.py with the selected headline options
-(mult=1.3, min=16, pre=dark_gamma0.5, no TTA).   usage: pose_frames.py REQUEST.json OUT.npz
+(mult=1.3, min=16, pre=dark_gamma0.5, no TTA).
+Crop interpolation (20 Nov 2026): bicubic when the crop is ENLARGED (side < 256 px), bilinear when it is shrunk. The earlier flag
+INTER_AREA is treated as bilinear by OpenCV's warpAffine; on the six demo clips shrunk to 20-60 px animals, bicubic enlargement put
+78-98 % of keypoints within 0.1 body length of the full-size answer vs 76-95 % bilinear (_work/zoom/pose_interp).
+usage: pose_frames.py REQUEST.json OUT.npz
 REQUEST.json: {"weights": path, "pre": "dark_gamma0.5", "items": [{"image": path, "boxes": [[x0, y0, x1, y1], ...]}, ...]}
 OUT.npz: kp (n_boxes_total, K, 2), conf (n_boxes_total, K), ok (n_boxes_total,) in the order of the request."""
 import json
@@ -34,7 +38,7 @@ for n_it, it in enumerate(req['items']):
     for x0, y0, x1, y1 in it['boxes']:
         cx, cy = (x0 + x1) / 2, (y0 + y1) / 2; side = max(max(x1 - x0, y1 - y0) * MULT, MIN); X0, Y0 = cx - side / 2, cy - side / 2
         A_ = cv2.getAffineTransform(np.float32([[X0, Y0], [X0 + side, Y0], [X0, Y0 + side]]), np.float32([[0, 0], [S, 0], [0, S]]))
-        c = cv2.warpAffine(img, A_, (S, S), flags=cv2.INTER_AREA, borderMode=cv2.BORDER_CONSTANT, borderValue=(114, 114, 114))
+        c = cv2.warpAffine(img, A_, (S, S), flags=cv2.INTER_CUBIC if side < S else cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT, borderValue=(114, 114, 114))
         crops.append(pre(c, PRE)); aff.append((X0, Y0, side))
     if not crops: continue
     R = M.predict(crops, imgsz=S, conf=0.01, verbose=False, device=DEV)

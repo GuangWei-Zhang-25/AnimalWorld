@@ -240,6 +240,19 @@ class RunApp:
         self.detector_box = ttk.Combobox(g, textvariable=self.detector_var, state="readonly", width=18, values=tuple(P.TRACKER_DETECTORS))
         self.detector_box.grid(row=1, column=1, sticky="w", pady=S(4))
         self.detector_box.bind("<<ComboboxSelected>>", lambda e: self._options_changed())
+        ttk.Label(g, text="Zoom", style="Card.TLabel").grid(row=5, column=0, sticky="w", pady=S(3), padx=(0, S(16)))
+        self.zoom_var = tk.StringVar(value="auto")
+        self.zoom_box = ttk.Combobox(g, textvariable=self.zoom_var, state="readonly", width=18, values=("auto", "off"))
+        self.zoom_box.grid(row=5, column=1, sticky="w", pady=S(4))
+        ttk.Label(g, text="Boxes and outlines", style="Card.TLabel").grid(row=6, column=0, sticky="w", pady=S(3), padx=(0, S(16)))
+        self.fill_var = tk.StringVar(value="sam2")
+        self.fill_box = ttk.Combobox(g, textvariable=self.fill_var, state="readonly", width=18, values=("sam2", "detector"))
+        self.fill_box.grid(row=6, column=1, sticky="w", pady=S(4))
+        lab2 = ttk.Label(g, style="Caption.Card.TLabel", justify="left",
+                         text="Zoom auto: when the animals are small in the frame, or the frame is two cameras side by side, each region with "
+                              "animals is analysed zoomed in. Boxes and outlines sam2: one stable source for every frame; detector: faster, flickers.")
+        lab2.grid(row=7, column=0, columnspan=2, sticky="ew")
+        th.wrap(lab2)
         self.ask_var = tk.BooleanVar(value=True)
         self.ask_check = ttk.Checkbutton(g, text="Show me the animal count before tracking (recommended)", variable=self.ask_var, style="Card.TCheckbutton")
         self.ask_check.grid(row=2, column=0, columnspan=2, sticky="w")
@@ -421,6 +434,8 @@ class RunApp:
             j.dir = Path(out).expanduser().resolve() / j.name; j.work = j.dir / "_work"
             if self.detector_var.get() != (j.opt.tracker_detector or P.DEFAULT_TRACKER_DETECTOR):
                 j.opt.tracker_detector = self.detector_var.get()
+            if j.status != "confirm" and not j.plan:
+                j.opt.zoom = self.zoom_var.get(); j.opt.fill = self.fill_var.get()
             j.opt.engine = self.engine["engine"]; j.stop.clear(); j.warnings = []; j.status = "added"
         self.stop_all.clear()
         self.start_button.configure(state="disabled"); self.stop_button.configure(state="normal")
@@ -586,7 +601,10 @@ class RunApp:
             return
         if j.status == "confirm":
             self.confirm_var.set(f"{j.video.name}: {j.n_auto} animal(s) found on the sample frames (green = confident detection). "
-                                 "Count the animals yourself, correct the number if needed, then press Confirm.")
+                                 "Count the animals that move freely yourself (not one under a cup or behind a grid), correct the number if needed, "
+                                 "then press Confirm."
+                                 + (("\n" + j.plan["text"][:1].upper() + j.plan["text"][1:] + ". The picture shows the proposed regions; they are used as shown.")
+                                    if (j.plan or {}).get("zoom") else ""))
             if not self.count_var.get().strip() or getattr(self, "_count_for", None) != name:
                 self.count_var.set(str(max(1, j.n_auto or 1))); self._count_for = name
         elif j.status == "done":
@@ -624,7 +642,8 @@ class RunApp:
         try:
             import cv2
             from PIL import Image
-            cap = cv2.VideoCapture(str(j.dir / "overlay.mp4"))
+            zoomed = j.dir / "overlay_regions.mp4"                    # when the analysis was zoomed: the regions, large
+            cap = cv2.VideoCapture(str(zoomed if zoomed.exists() else j.dir / "overlay.mp4"))
             n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
             for _ in range(max(0, n // 2)):
                 if not cap.grab():
