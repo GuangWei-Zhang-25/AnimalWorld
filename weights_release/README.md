@@ -20,6 +20,12 @@ The tracking rule set of MouseWorld-Track (v7j) is program code inside the `anim
 By default the tracker's witnesses are fed by detectors A and B, the pair that scores best (21 identity fixes on the
 34 public benchmark clips; MouseWorld-DET alone: 42); MouseWorld-DET gives the counts, boxes and outlines.
 
+## Training data
+
+The MouseWorld detectors were trained on MouseWorld, 1.32 million generated mouse frames, together with labelled
+real mouse datasets. The pose models were trained on the keypoint-annotated, human-reviewed clips of MouseWorld
+together with CalMS21 training crops. Per-file details: `manifest.json`.
+
 ## How the app gets them
 
 Automatically: the app downloads a missing file at first use from the release address, checks its SHA-256 and keeps
