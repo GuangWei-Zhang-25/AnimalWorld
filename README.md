@@ -11,6 +11,9 @@ cd AnimalWorld
 bash install.sh --gpu      # NVIDIA GPU (full engine). No GPU: bash install.sh
 ```
 
+The full engine needs Python 3.10 or newer (the CPU engine: 3.9). If `python3` is older:
+`PYTHON=python3.11 bash install.sh --gpu`.
+
 ## 2. Run the demo
 
 ```bash

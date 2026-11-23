@@ -30,12 +30,12 @@ The weights and demo clips are the releases `weights-v1` and `demo-v1` of https:
 ## Quick start
 
 ```bash
-bash install.sh                 # creates ~/animalworld-env and installs the local wheel with the [run] extra
+bash install.sh                 # creates ~/animalworld-env and installs this folder with the [run] extra
 ~/animalworld-env/bin/animalworld studio    # Animal World Studio: the whole pipeline in one window
 ~/animalworld-env/bin/animalworld run       # Animal World Run: pick mouse videos, press Start (same as: mouseworld)
 ```
 
-`bash install.sh --gpu` adds the full engine for an NVIDIA GPU. Without cloning: `pip install "animalworld[run] @ git+https://github.com/GuangWei-Zhang-25/AnimalWorld.git"`. Weights and demo clips download automatically at first use; [INSTALL.md](../INSTALL.md) has the details.
+`bash install.sh --gpu` adds the full engine for an NVIDIA GPU; it needs Python 3.10 or newer (`PYTHON=python3.11 bash install.sh --gpu` where `python3` is 3.9; the CPU engine runs on 3.9). Without cloning: `pip install "animalworld[run] @ git+https://github.com/GuangWei-Zhang-25/AnimalWorld.git"`. Weights and demo clips download automatically at first use; [INSTALL.md](../INSTALL.md) has the details.
 
 Both windows are plain Python (tkinter / ttk): no browser, no server, no extra GUI package. One shared style
 (`animalworld/ui.py`): a quiet neutral window with white rounded cards, one accent colour, the system's UI font, light

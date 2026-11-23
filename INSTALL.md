@@ -1,21 +1,31 @@
 # Installing Animal World
 
-Repository: https://github.com/GuangWei-Zhang-25/AnimalWorld (public, still empty). Nothing is uploaded yet: no PyPI package, no pushed source, no
-release files. The addresses are already set in the package (weights: release `weights-v1`, demo clips: release `demo-v1`
-of that repository). The lines below say which commands work **today** and which need the upload first.
+Repository: https://github.com/GuangWei-Zhang-25/AnimalWorld (public). Releases: `weights-v1` (the six MouseWorld model
+files) and `demo-v1` (the six demo clips and `expected.zip`); the package downloads from both by itself. Not on PyPI yet.
+
+**Python:** the CPU engine works on Python 3.9 or newer; the full engine (`--gpu`) needs **Python 3.10 or newer**
+(`rfdetr>=1.12`, behind MouseWorld-DET, is published for 3.10+ only). Where `python3` is 3.9 (e.g. Rocky / RHEL 9) use
+`PYTHON=python3.11 bash install.sh --gpu` (on a cluster typically after `module load python/3.11`).
 
 ## One line
 
+What "works today?" means: checked on 23 Nov 2026 as a new user would, on Linux (Rocky 9, Athena cluster), each time
+from a fresh `git clone` of the public repository into a new folder, with a new HOME, an empty pip cache and empty
+Animal World weight / demo caches, and NO `ANIMALWORLD_WEIGHTS_URL` / `ANIMALWORLD_DEMO_URL`, so everything came from
+the public GitHub releases (and SAM 2.1 from Meta's address).
+
 | | command | works today? |
 |---|---|---|
-| from this folder (local wheel) | `bash install.sh` | **yes** (tested on Linux, Python 3.12) |
-| the same by hand | `python3 -m venv ~/animalworld-env && ~/animalworld-env/bin/pip install "dist/animalworld-0.2.0-py3-none-any.whl[run]"` | **yes** |
-| full engine for an NVIDIA GPU | `bash install.sh --gpu` | **yes**: run end to end into a fresh venv with an empty pip cache (Linux, Python 3.12); nothing gated is installed or needed |
+| CPU engine, from a clone | `bash install.sh` | **yes** (system Python 3.9.21; 135 s). `animalworld demo --headless --engine lite` then ran all six clips on 8 CPU cores in 973 s, peak 1.1 GB RAM; scored with `score_demo.py`: five clips 100 % identity with 0 fixes, `mouse_x2_cage` 295 / 300 with 2 fixes (the simple tracker during the contact), 0 missed and 0 false on all six: the same numbers as the CPU row of `demo_release/benchmark/benchmark.csv` |
+| full engine for an NVIDIA GPU, from a clone | `bash install.sh --gpu` | **yes with Python 3.10+** (Python 3.11.6; 356 s; torch 2.14.1+cu126, rfdetr 1.12.1, sam2 1.1.0, ultralytics 8.4.216; nothing gated installed). With Python 3.9 it FAILED in step 3 (`No matching distribution found for rfdetr>=1.12`); the script now stops at the start with the reason instead |
 | the same + the optional SAM 3.1 code | `bash install.sh --gpu --sam3` | not run as a script (the SAM 3 code was installed by hand from a copy of Meta's GitHub repository) |
-| demo | `~/animalworld-env/bin/animalworld demo` | **yes**, with `ANIMALWORLD_WEIGHTS_URL` / `ANIMALWORLD_DEMO_URL` pointing at the two release folders; the public releases are not uploaded yet |
-| public, after the PyPI upload | `pip install "animalworld[run]"` | **no**: the name `animalworld` is free on PyPI but nothing is uploaded |
-| from the repository, after the push | `pip install "animalworld[run] @ git+https://github.com/GuangWei-Zhang-25/AnimalWorld.git"` | **no**: the repository is empty until the first push |
-| one line, after the push | `curl -fsSL https://raw.githubusercontent.com/GuangWei-Zhang-25/AnimalWorld/main/install.sh \| bash` | **no**: needs the pushed repository and the PyPI package (the script falls back to PyPI when it is not next to a wheel) |
+| demo | `~/animalworld-env/bin/animalworld demo --headless --out results` | **yes** (SLURM, one H100 shard, 4 CPU cores): fetched the six clips from `demo-v1` and the five weight files it needs from `weights-v1` + SAM 2.1 from Meta, full engine, all six clips 100 % identity, 0 fixes, 0 missed, 0 false, and every `tracks.csv` byte-identical to `demo_release/expected/`; 2,877 s for the six clips (the 20 Nov run with more cores: 1,370 s), peak 14.5 GB RAM, peak 2.5 GB GPU memory in its own processes. With 2 cores a first run was slower and hit its 50-min job limit during the last clip; the five finished clips were identical too. The `expected.zip` uploaded to `demo-v1` (built 20 Nov) is OLDER than `demo_release/expected/`: same `accuracy.json` and scorer, but its `tracks.csv` / `summary.json` lack the zoom / geometry columns of 0.2.0 and will not match a new run byte for byte; a rebuilt `demo_release/expected.zip` (sha256 `34244b4b...`) is ready to replace it |
+| your video | `~/animalworld-env/bin/animalworld zeroshot VIDEO.mp4 --out results --n-animals 2` | **yes**, exactly as written (a demo clip saved as `VIDEO.mp4`): 404 s; `results/video/` holds `tracks.csv` (identical to the demo run of that clip), `masks.npz`, `overlay.mp4`, `overlay_masks.mp4`, `summary.json`, `summary.html`. Note the folder name is the lower-case file stem |
+| the windows | `animalworld run`, `animalworld demo` (no `--headless`) | the commands exist (`animalworld run --help` works); the windows themselves were not opened in this check (no display) |
+| from the repository, no clone | `pip install "animalworld[run] @ git+https://github.com/GuangWei-Zhang-25/AnimalWorld.git"` | **yes** (Python 3.9.21): import, `animalworld --help`, all six MouseWorld files downloaded from `weights-v1` (8 s) and `animalworld weights --verify` = sha256 ok for all six |
+| one line | `curl -fsSL https://raw.githubusercontent.com/GuangWei-Zhang-25/AnimalWorld/main/install.sh \| bash` | **no** with the `install.sh` of commit f3a10b7 (the first public one): it fell back to `animalworld` from PyPI, which does not exist (`No matching distribution`), and setting `ANIMALWORLD_PACKAGE=animalworld@git+...` built an invalid requirement. Fixed in `install.sh` (falls back to the GitHub repository; `name@URL` handled); the fixed script, piped into `bash` from an empty folder, installed the CPU engine from GitHub. Works for everyone once the fix is pushed |
+| public, after a PyPI upload | `pip install "animalworld[run]"` | **no**: nothing is on PyPI (checked: pypi.org/pypi/animalworld returns 404) |
+| from a local build | `pip install "dist/animalworld-0.2.0-py3-none-any.whl[run]"` | **yes** (19-20 Nov, Python 3.9 and 3.12); `dist/` is not in the repository |
 | Windows | `install.bat` | **untested** (written on Linux; CPU engine only) |
 
 After installing:
@@ -54,7 +64,7 @@ weights are missing, the command stops with the reason; the window continues wit
 
 Model files are never inside the wheel. They are a separate download: the folder `weights_release/` of this project is
 the upload-ready bundle (six MouseWorld files, 539 MB in total, each far below GitHub's 2 GB per-file limit, with
-`manifest.json`, `SHA256SUMS`, `README.md` and licence files). **It has not been uploaded.**
+`manifest.json`, `SHA256SUMS`, `README.md` and licence files), uploaded as the GitHub release `weights-v1`.
 
 `animalworld weights` lists what is looked for and what is present (`--verify` also checks the checksums).
 
@@ -68,16 +78,15 @@ is set aside as `<file>.badsum` and never used.
 | `mouseworld-pose.pt` (20 MB) | MouseWorld-Pose | the weights release |
 | `mouseworld-det-lite.onnx` (41 MB), `mouseworld-pose-lite.onnx` (40 MB) | CPU engine | the weights release |
 | `mouseworld-track-det-a.ckpt`, `-b.ckpt` (146 MB each) | the two detectors behind MouseWorld-Track in the default configuration (`scored_pair`) | the weights release |
-| `sam2.1_hiera_large.pt` (898 MB) | SAM 2.1, Apache-2.0 | Meta's own address, fetched by the app at first use (this fetch was not exercised here: the file was already local) |
+| `sam2.1_hiera_large.pt` (898 MB) | SAM 2.1, Apache-2.0 | Meta's own address, fetched by the app at first use (checked 23 Nov into an empty cache: downloaded and used) |
 | `sam3.1_multiplex.pt` (3.5 GB) | OPTIONAL (`--sam3`): SAM 3.1, SAM License, gated | accept the licence at huggingface.co/facebook/sam3.1 and fetch it yourself; the Hugging Face cache is searched too |
 
 **The address is one constant:** `BASE_URL` in `src/animalworld/weights.py`
 (`https://github.com/GuangWei-Zhang-25/AnimalWorld/releases/download/weights-v1/`); the demo clips use `DEMO_URL` in
 `src/animalworld/zeroshot/demo.py` (`.../releases/download/demo-v1/`). To use a mirror, a lab server or a local folder set
-`ANIMALWORLD_WEIGHTS_URL` / `ANIMALWORLD_DEMO_URL`. Until the releases are uploaded a download from the default address
-fails with "not found" and the app names the file and the folders it looked in.
+`ANIMALWORLD_WEIGHTS_URL` / `ANIMALWORLD_DEMO_URL`. If a download fails the app names the file and the folders it looked in.
 
-Upload (prepared, **not run**): `tools/release_upload.py` creates a release by tag through the GitHub REST API and
+Upload (done for `weights-v1` and `demo-v1`): `tools/release_upload.py` creates a release by tag through the GitHub REST API and
 uploads the files. It reads the token from the environment variable `GITHUB_TOKEN` only and never prints it.
 
 ```bash
@@ -108,25 +117,27 @@ them from `$ANIMALWORLD_DEMO_URL` or `DEMO_URL` (an https address, a `file://` a
 checks each against the SHA-256 recorded in the package. `demo_release/README.md` lists the clips, their source and
 licence, and the expected results.
 
-On this cluster the files are found without any download: `~/.cache/animalworld/weights` is a symbolic link to
-`weights_local/`, whose MouseWorld entries point at `weights_release/`.
+In the developer's own account on the Athena cluster the files are found without any download: `~/.cache/animalworld/weights`
+is a symbolic link to `weights_local/`, whose MouseWorld entries point at `weights_release/`. The 23 Nov check above
+used a new HOME and empty caches so that none of this was used.
 
 ## Which engine runs
 
 `animalworld run` checks the computer when it starts and says what it found.
 
 * **Full engine**: needs an NVIDIA GPU of the Ampere generation or newer, the libraries of `[run-gpu]`, and five
-  weight files, none of them gated (MouseWorld-DET, MouseWorld-Pose, the two tracker detectors, SAM 2.1). Tested on an H100 (80 GB). SAM 3.1 alone holds about 30 GB of GPU memory in our earlier runs, so
-  a 16 GB card is not expected to work; this was not tried.
+  weight files, none of them gated (MouseWorld-DET, MouseWorld-Pose, the two tracker detectors, SAM 2.1). Tested on an H100 (80 GB). Without SAM 3.1 (the default) the demo peaked at
+  2.5 GB of GPU memory in its own processes (sampled every 2 s, 23 Nov), so smaller cards should do, but none was tried.
+  With `--sam3`, SAM 3.1 alone holds about 30 GB in our earlier runs.
 * **CPU engine**: everything else. It says plainly that tracking quality is lower. It uses MouseWorld-DET-Lite and a
   simple position tracker, not MouseWorld-Track.
 
 * **Which detector feeds the tracker** (`--tracker-detector`, or `ANIMALWORLD_TRACKER_DETECTOR`). Measured on the 34
-  public benchmark clips (16.5 min, animal count given):
+  public benchmark clips (16.5 min, animal count given), while the SAM 3.1 witness was still on by default (20 Nov):
 
   | option | what | identity fixes | per hour |
   |---|---|---|---|
-  | `scored_pair` (default) | the two checkpoints the published tracking numbers were measured with; MouseWorld-DET still gives counts, boxes and outlines | 21 | 76 |
+  | `scored_pair` (default) | the two checkpoints the published tracking numbers were measured with; MouseWorld-DET still gives counts, boxes and outlines | 21 (20 without SAM 3.1) | 76 (73 without SAM 3.1) |
   | `strongest` | MouseWorld-DET alone: one detector, about 25 % less computing, two weight files fewer | 42 | 153 |
   | `strongest_two_seeds` | MouseWorld-DET plus the older `mid_1408` checkpoint as second seed | 39 | 142 |
   | `strongest_recut` (experimental) | MouseWorld-DET alone with its confidence cut moved from 0.40 to 0.35; the value was chosen on these same clips | 25 | 91 |
