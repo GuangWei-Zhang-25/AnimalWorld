@@ -55,7 +55,7 @@ BIG = 1e9
 # given, packaged engine): scored_pair 21 identity fixes (76 per hour), strongest 42 (153), strongest_two_seeds 39 (142).
 #   scored_pair  DEFAULT (user decision, 20 Nov 2026). The two older checkpoints the tracking numbers of the manuscript were
 #                measured with ("epoch5" seeds F / B and the local steps, "mid_1408" seeds F2 / B2). Output boxes, outlines
-#                and the animal count still come from MouseWorld-DET (the 0.924 checkpoint).
+#                and the animal count still come from MouseWorld-DET.
 #   strongest    MouseWorld-DET everywhere: one detector for counts, boxes, outlines AND the tracker; no second seed
 #                (witnesses F, B, local, S, D). About 25 % less computing, twice the identity fixes on the benchmark.
 #   strongest_two_seeds  MouseWorld-DET seeds F / B and the local steps and gives the output boxes; "mid_1408" is kept only

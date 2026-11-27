@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.2 (27 November 2026)
+
+The six MouseWorld model files were re-saved as inference-only copies (weights and architecture only) and moved to the
+release `weights-v2`; their checksums changed, their predictions did not (checked file by file). The package now downloads
+from `weights-v2`. Earlier package versions pointed at `weights-v1`, which no longer holds the model files: upgrade.
+
 ## 0.2.1 (27 November 2026)
 
 The zero-shot engine (Animal World Run, MouseWorld-Track rule set v7j) is unchanged from 0.2.0; the demo's expected

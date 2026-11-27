@@ -9,7 +9,7 @@ Status of every item that stands between this folder and a public release, as of
 | item | status | detail |
 |---|---|---|
 | Repository | needs the user (push) | https://github.com/GuangWei-Zhang-25/AnimalWorld exists, public and empty; `git init` is done locally, nothing is committed or pushed. `project.urls` point at it |
-| Weights address | needs the user (upload) | `BASE_URL` is set to the release `weights-v1` of the repository; the release does not exist yet. Upload `weights_release/` with `tools/release_upload.py weights` (prepared, never run against GitHub) |
+| Weights address | needs the user (upload) | `BASE_URL` is set to the release `weights-v2` of the repository; the release does not exist yet. Upload `weights_release/` with `tools/release_upload.py weights` (prepared, never run against GitHub) |
 | Demo-clip address | needs the user (upload) | `DEMO_URL` is set to the release `demo-v1`; upload `demo_release/` with `tools/release_upload.py demo` |
 | PyPI name `animalworld` | needs the user (upload) | reported free by the coordinator on 20 Nov (I did not query PyPI); not registered; `twine check dist/*` passes; `pip install "animalworld[run]"` works only after an upload |
 | Public `curl ... \| bash` one-liner | needs the user | needs a hosted `install.sh`; the script itself works from a local copy |

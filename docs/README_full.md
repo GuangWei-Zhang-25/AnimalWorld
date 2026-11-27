@@ -9,7 +9,7 @@ them, puts a human in the loop to accept or correct the labels, builds a COCO + 
 models once enough images are accepted, and runs the exported weights on real recordings
 (boxes, keypoints, identities).
 
-> Status: 0.2.0, alpha. Code, weights (release `weights-v1`) and demo clips (release `demo-v1`) are public on GitHub.
+> Status: 0.2.2, alpha. Code, weights (release `weights-v2`) and demo clips (release `demo-v1`) are public on GitHub.
 > [STATUS.md](../STATUS.md) lists what was tested.
 
 ## Try it in two commands
@@ -25,7 +25,7 @@ window. Nothing gated is needed: SAM 3.1 is an option (`--sam3`), not a requirem
 
 ![Animal World Run with a demo result](img/run_demo.png)
 
-The weights and demo clips are the releases `weights-v1` and `demo-v1` of https://github.com/GuangWei-Zhang-25/AnimalWorld and download automatically.
+The weights and demo clips are the releases `weights-v2` and `demo-v1` of https://github.com/GuangWei-Zhang-25/AnimalWorld and download automatically.
 
 ## Quick start
 

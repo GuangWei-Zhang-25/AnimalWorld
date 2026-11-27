@@ -8,10 +8,10 @@ This page says which released file is behind each model name in the manuscript, 
 | Name in the paper | Released file | Notes |
 |---|---|---|
 | MouseWorld-DET (RF-DETR-Seg-L, epoch-5 checkpoint, score threshold 0.20) | `mouseworld-track-det-a.ckpt` | The checkpoint behind the detection figures and the external-laboratory evaluations. In the package it is "MouseWorld-Track detector A". |
-| MouseWorld-DET as used by Animal World Run for counts, boxes and outlines | `mouseworld-det.ckpt` | A later fine-tune started from the epoch-5 checkpoint (`b_full_lr5e5_cos_c04`, selection F1 0.924 against 0.911). It is the program's default detector; it is not the checkpoint scored in the detection figures. |
+| MouseWorld-DET as used by Animal World Run for counts, boxes and outlines | `mouseworld-det.ckpt` | A later fine-tune of the epoch-5 checkpoint. It is the program's default detector; it is not the checkpoint scored in the detection figures. |
 | MouseWorld-Track (rule set v7j) | program code: `src/animalworld/zeroshot/mwtrack/sup_v7j.py` | Not a weight file. Source hashes: `src/animalworld/zeroshot/mwtrack/PROVENANCE.md`. |
 | Detectors behind MouseWorld-Track in the tracking benchmark | `mouseworld-track-det-a.ckpt` (epoch 5) and `mouseworld-track-det-b.ckpt` (`mid_1408`, second seed) | The default tracker configuration `scored_pair` uses exactly this pair. |
-| MouseWorld-Pose (YOLO11s-pose, configuration `r3_b_g050`) | `mouseworld-pose.pt` | `r3_b_g050` = training run `crop_pose_r3bottom` with gamma 0.5 applied to dark crops at inference; the package applies the same rule (`mwtrack/pose_frames.py`). |
+| MouseWorld-Pose (YOLO11s-pose, configuration `r3_b_g050`) | `mouseworld-pose.pt` | `r3_b_g050` = this file with gamma 0.5 applied to dark crops at inference; the package applies the same rule (`mwtrack/pose_frames.py`). |
 | MouseWorld-DET-Lite (YOLO11s-seg) | `mouseworld-det-lite.onnx` | ONNX export for computers without a GPU. |
 | SAM 2.1 (Hiera-L) | downloaded from Meta at first use | Not redistributed here. |
 

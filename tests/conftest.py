@@ -22,7 +22,7 @@ def isolated_config(tmp_path, monkeypatch):
         if k.startswith("ANIMALWORLD_") and k != "ANIMALWORLD_CONFIG_DIR":
             monkeypatch.delenv(k, raising=False)
     # tests never contact the release addresses: both downloads point at the "no address" placeholder unless a test sets its own
-    monkeypatch.setenv("ANIMALWORLD_WEIGHTS_URL", "https://github.com/OWNER/REPO/releases/download/weights-v1/")
+    monkeypatch.setenv("ANIMALWORLD_WEIGHTS_URL", "https://github.com/OWNER/REPO/releases/download/weights-v2/")
     monkeypatch.setenv("ANIMALWORLD_DEMO_URL", "https://github.com/OWNER/REPO/releases/download/demo-v1/")
     yield
 

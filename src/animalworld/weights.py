@@ -34,37 +34,37 @@ from . import __version__
 # weights_release/ (GitHub: https://github.com/<owner>/<repo>/releases/download/<tag>/). EDIT THIS ONE LINE after the
 # upload, or set the environment variable ANIMALWORLD_WEIGHTS_URL (a mirror, a lab server, a local folder). An address
 # that still contains the placeholder OWNER/REPO counts as "no address": nothing is downloaded and the app says so.
-BASE_URL = "https://github.com/GuangWei-Zhang-25/AnimalWorld/releases/download/weights-v1/"
-WEIGHTS_VERSION = "1"
+BASE_URL = "https://github.com/GuangWei-Zhang-25/AnimalWorld/releases/download/weights-v2/"
+WEIGHTS_VERSION = "2"
 SAM2_URL = "https://dl.fbaipublicfiles.com/segment_anything_2/092824/"     # Meta's own download address
 _UNSET = "OWN" + "ER/" + "RE" + "PO"
 
 REGISTRY: Dict[str, dict] = {
     "mouseworld-det": dict(
-        file="mouseworld-det.ckpt", size=146037082, own=True, title="MouseWorld-DET",
-        sha256="67c7866edf0ee23ce6d0b5fc201afa914ebde0e7c28e74c4bd43d7479498ffb3",
-        about="RF-DETR-Seg-L detector + outlines (fine-tune b_full_lr5e5_cos_c04 from the epoch-5 checkpoint, selection F1 0.924); "
+        file="mouseworld-det.ckpt", size=146034330, own=True, title="MouseWorld-DET",
+        sha256="881cdccee397ccdf34b8d75be5ac3b2a53063d90719abffd46e3e81fac530f42",
+        about="RF-DETR-Seg-L detector + outlines; "
               "the program's default detector; inference-only copy"),
     "mouseworld-pose": dict(
-        file="mouseworld-pose.pt", size=19756597, own=True, title="MouseWorld-Pose",
-        sha256="fc81ae3a7f3f9e82d514f54e849789076a930f0ca5ca73ba8ff11cab096f9868",
-        about="7 keypoints per mouse on a 256 px crop (YOLO11s-pose, run crop_pose_r3bottom; r3_b_g050 in the paper)"),
+        file="mouseworld-pose.pt", size=19746677, own=True, title="MouseWorld-Pose",
+        sha256="75ceb3a7f5e61ccdfa761c3088e506aa4b5740a0ec7f24b0928e6eaecdc4e5c6",
+        about="7 keypoints per mouse on a 256 px crop (YOLO11s-pose; r3_b_g050 in the paper)"),
     "mouseworld-det-lite": dict(
-        file="mouseworld-det-lite.onnx", size=40753393, own=True, title="MouseWorld-DET-Lite",
-        sha256="535cb600eaa33927727e82c967d53625c6791d7b99966624b1a4d77d697aa366",
+        file="mouseworld-det-lite.onnx", size=40753090, own=True, title="MouseWorld-DET-Lite",
+        sha256="3c6d2a0fe6129c4705a47572e62126685fb73587802b4508a4cfa1b4b7ca1ccd",
         about="YOLO11s-seg detector for computers without a GPU (ONNX)"),
     "mouseworld-pose-lite": dict(
-        file="mouseworld-pose-lite.onnx", size=40075237, own=True, title="MouseWorld-Pose (CPU, earlier checkpoint)",
-        sha256="bc489ef712735b564f5f40ba73bcc4478815820f3d138b24a2bd57678855a8c0",
+        file="mouseworld-pose-lite.onnx", size=40074878, own=True, title="MouseWorld-Pose (CPU, earlier checkpoint)",
+        sha256="d2298210d1f5961b3a261c60215a258c541a858af1bd6fadc7a5a5c88052217b",
         about="crop keypoint model as ONNX; an EARLIER checkpoint than MouseWorld-Pose"),
     "mouseworld-track-det-a": dict(
-        file="mouseworld-track-det-a.ckpt", size=146041778, own=True, title="MouseWorld-Track detector A",
-        sha256="43cfdd42dd5e79ab14b3c3686ef2321be2becdb825fba2c6748fa0ae4cf57a96",
+        file="mouseworld-track-det-a.ckpt", size=146039026, own=True, title="MouseWorld-Track detector A",
+        sha256="10eb9b55fc9839ea9658653ff7f4b57cfff105f5fa68e6c9c001005813bda694",
         about="RF-DETR-Seg-L 'epoch5': the checkpoint scored as MouseWorld-DET in the paper's detection figures; first "
               "detector of the default tracker configuration (scored_pair)"),
     "mouseworld-track-det-b": dict(
-        file="mouseworld-track-det-b.ckpt", size=146041778, own=True, title="MouseWorld-Track detector B",
-        sha256="109fbca8d75611c2edceb39948118b1623796e3e1dc28847c7cfde6af094506c",
+        file="mouseworld-track-det-b.ckpt", size=146039026, own=True, title="MouseWorld-Track detector B",
+        sha256="90f97822139920ab494e11c7ec2310b59b3603f163b4b94fd20173bc76e24589",
         about="RF-DETR-Seg-L 'mid_1408'; second detector seed of the default tracker configuration (scored_pair)"),
     "sam2.1-hiera-large": dict(
         file="sam2.1_hiera_large.pt", size=898083611, own=False, title="SAM 2.1 (Hiera-L)", url=SAM2_URL,

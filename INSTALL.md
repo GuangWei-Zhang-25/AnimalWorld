@@ -1,6 +1,6 @@
 # Installing Animal World
 
-Repository: https://github.com/GuangWei-Zhang-25/AnimalWorld (public). Releases: `weights-v1` (the six MouseWorld model
+Repository: https://github.com/GuangWei-Zhang-25/AnimalWorld (public). Releases: `weights-v2` (the six MouseWorld model
 files) and `demo-v1` (the six demo clips and `expected.zip`); the package downloads from both by itself. Not on PyPI yet.
 
 **Python:** the CPU engine works on Python 3.9 or newer; the full engine (`--gpu`) needs **Python 3.10 or newer**
@@ -19,10 +19,10 @@ the public GitHub releases (and SAM 2.1 from Meta's address).
 | CPU engine, from a clone | `bash install.sh` | **yes** (system Python 3.9.21; 135 s). `animalworld demo --headless --engine lite` then ran all six clips on 8 CPU cores in 973 s, peak 1.1 GB RAM; scored with `score_demo.py`: five clips 100 % identity with 0 fixes, `mouse_x2_cage` 295 / 300 with 2 fixes (the simple tracker during the contact), 0 missed and 0 false on all six: the same numbers as the CPU row of `demo_release/benchmark/benchmark.csv` |
 | full engine for an NVIDIA GPU, from a clone | `bash install.sh --gpu` | **yes with Python 3.10+** (Python 3.11.6; 356 s; torch 2.14.1+cu126, rfdetr 1.12.1, sam2 1.1.0, ultralytics 8.4.216; nothing gated installed). With Python 3.9 it FAILED in step 3 (`No matching distribution found for rfdetr>=1.12`); the script now stops at the start with the reason instead |
 | the same + the optional SAM 3.1 code | `bash install.sh --gpu --sam3` | not run as a script (the SAM 3 code was installed by hand from a copy of Meta's GitHub repository) |
-| demo | `~/animalworld-env/bin/animalworld demo --headless --out results` | **yes** (SLURM, one H100 shard, 4 CPU cores): fetched the six clips from `demo-v1` and the five weight files it needs from `weights-v1` + SAM 2.1 from Meta, full engine, all six clips 100 % identity, 0 fixes, 0 missed, 0 false, and every `tracks.csv` byte-identical to `demo_release/expected/`; 2,877 s for the six clips (the 20 Nov run with more cores: 1,370 s), peak 14.5 GB RAM, peak 2.5 GB GPU memory in its own processes. With 2 cores a first run was slower and hit its 50-min job limit during the last clip; the five finished clips were identical too. The `expected.zip` uploaded to `demo-v1` (built 20 Nov) is OLDER than `demo_release/expected/`: same `accuracy.json` and scorer, but its `tracks.csv` / `summary.json` lack the zoom / geometry columns of 0.2.0 and will not match a new run byte for byte; a rebuilt `demo_release/expected.zip` (sha256 `34244b4b...`) is ready to replace it |
+| demo | `~/animalworld-env/bin/animalworld demo --headless --out results` | **yes** (SLURM, one H100 shard, 4 CPU cores): fetched the six clips from `demo-v1` and the five weight files it needs from `weights-v2` + SAM 2.1 from Meta, full engine, all six clips 100 % identity, 0 fixes, 0 missed, 0 false, and every `tracks.csv` byte-identical to `demo_release/expected/`; 2,877 s for the six clips (the 20 Nov run with more cores: 1,370 s), peak 14.5 GB RAM, peak 2.5 GB GPU memory in its own processes. With 2 cores a first run was slower and hit its 50-min job limit during the last clip; the five finished clips were identical too. The `expected.zip` uploaded to `demo-v1` (built 20 Nov) is OLDER than `demo_release/expected/`: same `accuracy.json` and scorer, but its `tracks.csv` / `summary.json` lack the zoom / geometry columns of 0.2.0 and will not match a new run byte for byte; a rebuilt `demo_release/expected.zip` (sha256 `34244b4b...`) is ready to replace it |
 | your video | `~/animalworld-env/bin/animalworld zeroshot VIDEO.mp4 --out results --n-animals 2` | **yes**, exactly as written (a demo clip saved as `VIDEO.mp4`): 404 s; `results/video/` holds `tracks.csv` (identical to the demo run of that clip), `masks.npz`, `overlay.mp4`, `overlay_masks.mp4`, `summary.json`, `summary.html`. Note the folder name is the lower-case file stem |
 | the windows | `animalworld run`, `animalworld demo` (no `--headless`) | the commands exist (`animalworld run --help` works); the windows themselves were not opened in this check (no display) |
-| from the repository, no clone | `pip install "animalworld[run] @ git+https://github.com/GuangWei-Zhang-25/AnimalWorld.git"` | **yes** (Python 3.9.21): import, `animalworld --help`, all six MouseWorld files downloaded from `weights-v1` (8 s) and `animalworld weights --verify` = sha256 ok for all six |
+| from the repository, no clone | `pip install "animalworld[run] @ git+https://github.com/GuangWei-Zhang-25/AnimalWorld.git"` | **yes** (Python 3.9.21): import, `animalworld --help`, all six MouseWorld files downloaded from `weights-v2` (8 s) and `animalworld weights --verify` = sha256 ok for all six |
 | one line | `curl -fsSL https://raw.githubusercontent.com/GuangWei-Zhang-25/AnimalWorld/main/install.sh \| bash` | **no** with the `install.sh` of commit f3a10b7 (the first public one): it fell back to `animalworld` from PyPI, which does not exist (`No matching distribution`), and setting `ANIMALWORLD_PACKAGE=animalworld@git+...` built an invalid requirement. Fixed in `install.sh` (falls back to the GitHub repository; `name@URL` handled); the fixed script, piped into `bash` from an empty folder, installed the CPU engine from GitHub. Works for everyone once the fix is pushed |
 | public, after a PyPI upload | `pip install "animalworld[run]"` | **no**: nothing is on PyPI (checked: pypi.org/pypi/animalworld returns 404) |
 | from a local build | `pip install "dist/animalworld-0.2.0-py3-none-any.whl[run]"` | **yes** (19-20 Nov, Python 3.9 and 3.12); `dist/` is not in the repository |
@@ -64,7 +64,7 @@ weights are missing, the command stops with the reason; the window continues wit
 
 Model files are never inside the wheel. They are a separate download: the folder `weights_release/` of this project is
 the upload-ready bundle (six MouseWorld files, 539 MB in total, each far below GitHub's 2 GB per-file limit, with
-`manifest.json`, `SHA256SUMS`, `README.md` and licence files), uploaded as the GitHub release `weights-v1`.
+`manifest.json`, `SHA256SUMS`, `README.md` and licence files), uploaded as the GitHub release `weights-v2`.
 
 `animalworld weights` lists what is looked for and what is present (`--verify` also checks the checksums).
 
@@ -82,17 +82,17 @@ is set aside as `<file>.badsum` and never used.
 | `sam3.1_multiplex.pt` (3.5 GB) | OPTIONAL (`--sam3`): SAM 3.1, SAM License, gated | accept the licence at huggingface.co/facebook/sam3.1 and fetch it yourself; the Hugging Face cache is searched too |
 
 **The address is one constant:** `BASE_URL` in `src/animalworld/weights.py`
-(`https://github.com/GuangWei-Zhang-25/AnimalWorld/releases/download/weights-v1/`); the demo clips use `DEMO_URL` in
+(`https://github.com/GuangWei-Zhang-25/AnimalWorld/releases/download/weights-v2/`); the demo clips use `DEMO_URL` in
 `src/animalworld/zeroshot/demo.py` (`.../releases/download/demo-v1/`). To use a mirror, a lab server or a local folder set
 `ANIMALWORLD_WEIGHTS_URL` / `ANIMALWORLD_DEMO_URL`. If a download fails the app names the file and the folders it looked in.
 
-Upload (done for `weights-v1` and `demo-v1`): `tools/release_upload.py` creates a release by tag through the GitHub REST API and
+Upload (done for `weights-v2` and `demo-v1`): `tools/release_upload.py` creates a release by tag through the GitHub REST API and
 uploads the files. It reads the token from the environment variable `GITHUB_TOKEN` only and never prints it.
 
 ```bash
 python tools/release_upload.py --dry-run weights     # lists the files, sizes and SHA-256; contacts nothing
 python tools/release_upload.py --dry-run demo
-GITHUB_TOKEN=... python tools/release_upload.py weights    # tag weights-v1
+GITHUB_TOKEN=... python tools/release_upload.py weights    # tag weights-v2
 GITHUB_TOKEN=... python tools/release_upload.py demo       # tag demo-v1
 ```
 
@@ -100,7 +100,7 @@ The same with the `gh` command line tool, where it is installed:
 
 ```bash
 cd weights_release
-gh release create weights-v1 --repo GuangWei-Zhang-25/AnimalWorld --title "MouseWorld weights v1" --notes-file RELEASE_NOTES.md \
+gh release create weights-v2 --repo GuangWei-Zhang-25/AnimalWorld --title "MouseWorld weights v2" --notes-file RELEASE_NOTES.md \
   mouseworld-det.ckpt mouseworld-pose.pt mouseworld-det-lite.onnx mouseworld-pose-lite.onnx \
   mouseworld-track-det-a.ckpt mouseworld-track-det-b.ckpt \
   manifest.json SHA256SUMS README.md NOTICE.md LICENSE-AGPL-3.0.txt LICENSE-Apache-2.0.txt

@@ -8,7 +8,7 @@ import pytest
 
 def test_registry_local_first_and_placeholder_address(tmp_path, monkeypatch):
     from animalworld import weights as W
-    assert W.BASE_URL == "https://github.com/GuangWei-Zhang-25/AnimalWorld/releases/download/weights-v1/"
+    assert W.BASE_URL == "https://github.com/GuangWei-Zhang-25/AnimalWorld/releases/download/weights-v2/"
     assert W.base_url({"own": True}) == ""                                  # the test address is the placeholder: nothing is downloaded
     monkeypatch.delenv("ANIMALWORLD_WEIGHTS_URL"); assert W.base_url({"own": True}) == W.BASE_URL; monkeypatch.setenv("ANIMALWORLD_WEIGHTS_URL", "https://github.com/OWNER/REPO/x/")
     monkeypatch.setenv("ANIMALWORLD_WEIGHTS", str(tmp_path / "w"))

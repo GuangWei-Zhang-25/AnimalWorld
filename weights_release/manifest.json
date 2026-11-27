@@ -1,37 +1,37 @@
 {
  "bundle": "MouseWorld weights",
- "version": "1",
- "release_tag": "weights-v1",
+ "version": "2",
+ "release_tag": "weights-v2",
  "files": [
   {
    "file": "mouseworld-det.ckpt",
    "name": "MouseWorld-DET",
-   "version": "1",
+   "version": "2",
    "role": "required: full engine",
-   "sha256": "67c7866edf0ee23ce6d0b5fc201afa914ebde0e7c28e74c4bd43d7479498ffb3",
-   "size": 146037082,
+   "sha256": "881cdccee397ccdf34b8d75be5ac3b2a53063d90719abffd46e3e81fac530f42",
+   "size": 146034330,
    "licence": "AGPL-3.0-only (the lab's choice for all MouseWorld model files; the upstream RF-DETR code and base weights are Apache-2.0)",
-   "what": "RF-DETR-Seg-L (rfdetr 1.12.0, class RFDETRSegLarge) fine-tune b_full_lr5e5_cos_c04 from the epoch-5 checkpoint (selection F1 0.924); the program's default detector. Inference-only copy of the training checkpoint.",
+   "what": "RF-DETR-Seg-L (rfdetr 1.12.0, class RFDETRSegLarge) a later fine-tune of the epoch-5 checkpoint; the program's default detector.",
    "trained_on": "MouseWorld (1.32 million generated mouse frames) together with labelled real mouse datasets; started from Roboflow's COCO RF-DETR-Seg-L weights"
   },
   {
    "file": "mouseworld-pose.pt",
    "name": "MouseWorld-Pose",
-   "version": "1",
+   "version": "2",
    "role": "required: full engine",
-   "sha256": "fc81ae3a7f3f9e82d514f54e849789076a930f0ca5ca73ba8ff11cab096f9868",
-   "size": 19756597,
+   "sha256": "75ceb3a7f5e61ccdfa761c3088e506aa4b5740a0ec7f24b0928e6eaecdc4e5c6",
+   "size": 19746677,
    "licence": "AGPL-3.0-only (required: trained with Ultralytics YOLO, which is AGPL-3.0)",
-   "what": "YOLO11s-pose on 256 px crops, 7 keypoints (nose, ears, neck, hips, tail base); run crop_pose_r3bottom (configuration r3_b_g050 in the paper: this file with gamma 0.5 on dark crops). Ultralytics checkpoint.",
+   "what": "YOLO11s-pose on 256 px crops, 7 keypoints (nose, ears, neck, hips, tail base); configuration r3_b_g050 in the paper: this file with gamma 0.5 on dark crops. Ultralytics checkpoint.",
    "trained_on": "keypoint-annotated, human-reviewed clips of MouseWorld (1.32 million generated mouse frames) and CalMS21 training crops"
   },
   {
    "file": "mouseworld-det-lite.onnx",
    "name": "MouseWorld-DET-Lite",
-   "version": "1",
+   "version": "2",
    "role": "required: CPU engine",
-   "sha256": "535cb600eaa33927727e82c967d53625c6791d7b99966624b1a4d77d697aa366",
-   "size": 40753393,
+   "sha256": "3c6d2a0fe6129c4705a47572e62126685fb73587802b4508a4cfa1b4b7ca1ccd",
+   "size": 40753090,
    "licence": "AGPL-3.0-only (required: trained with Ultralytics YOLO, which is AGPL-3.0)",
    "what": "YOLO11s-seg exported to ONNX (768 px).",
    "trained_on": "MouseWorld (1.32 million generated mouse frames) together with labelled real mouse datasets"
@@ -39,21 +39,21 @@
   {
    "file": "mouseworld-pose-lite.onnx",
    "name": "MouseWorld-Pose (CPU, earlier checkpoint)",
-   "version": "1",
+   "version": "2",
    "role": "required: CPU engine",
-   "sha256": "bc489ef712735b564f5f40ba73bcc4478815820f3d138b24a2bd57678855a8c0",
-   "size": 40075237,
+   "sha256": "d2298210d1f5961b3a261c60215a258c541a858af1bd6fadc7a5a5c88052217b",
+   "size": 40074878,
    "licence": "AGPL-3.0-only (required: trained with Ultralytics YOLO, which is AGPL-3.0)",
    "what": "YOLO11s-pose crop model exported to ONNX (256 px). An EARLIER checkpoint than mouseworld-pose.pt.",
-   "trained_on": "keypoint-annotated clips of MouseWorld (1.32 million generated mouse frames) and CalMS21 training crops (interim run)"
+   "trained_on": "keypoint-annotated clips of MouseWorld (1.32 million generated mouse frames) and CalMS21 training crops"
   },
   {
    "file": "mouseworld-track-det-a.ckpt",
    "name": "MouseWorld-Track detector A ('epoch5')",
-   "version": "1",
+   "version": "2",
    "role": "required: full engine (default tracker configuration scored_pair)",
-   "sha256": "43cfdd42dd5e79ab14b3c3686ef2321be2becdb825fba2c6748fa0ae4cf57a96",
-   "size": 146041778,
+   "sha256": "10eb9b55fc9839ea9658653ff7f4b57cfff105f5fa68e6c9c001005813bda694",
+   "size": 146039026,
    "licence": "AGPL-3.0-only (the lab's choice; upstream RF-DETR is Apache-2.0)",
    "what": "The epoch-5 RF-DETR-Seg-L checkpoint: the one scored as MouseWorld-DET in the paper's detection figures (threshold 0.20). First detector of the default tracker configuration (with detector B: the pair the published tracking numbers were measured with).",
    "trained_on": "an earlier stage of the same training as MouseWorld-DET: MouseWorld (1.32 million generated mouse frames) together with labelled real mouse datasets"
@@ -61,10 +61,10 @@
   {
    "file": "mouseworld-track-det-b.ckpt",
    "name": "MouseWorld-Track detector B ('mid_1408')",
-   "version": "1",
+   "version": "2",
    "role": "required: full engine (default tracker configuration scored_pair)",
-   "sha256": "109fbca8d75611c2edceb39948118b1623796e3e1dc28847c7cfde6af094506c",
-   "size": 146041778,
+   "sha256": "90f97822139920ab494e11c7ec2310b59b3603f163b4b94fd20173bc76e24589",
+   "size": 146039026,
    "licence": "AGPL-3.0-only (the lab's choice; upstream RF-DETR is Apache-2.0)",
    "what": "Earlier RF-DETR-Seg-L checkpoint; second, independent seed of the SAM 2.1 witnesses in the default tracker configuration.",
    "trained_on": "an earlier stage of the same training as MouseWorld-DET: MouseWorld (1.32 million generated mouse frames) together with labelled real mouse datasets"

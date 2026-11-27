@@ -3,7 +3,7 @@
 
     python tools/release_upload.py --dry-run weights      # list what would be uploaded: name, size, SHA-256. Contacts nothing.
     python tools/release_upload.py --dry-run demo
-    GITHUB_TOKEN=... python tools/release_upload.py weights     # tag weights-v1, files of weights_release/
+    GITHUB_TOKEN=... python tools/release_upload.py weights     # tag weights-v2, files of weights_release/
     GITHUB_TOKEN=... python tools/release_upload.py demo        # tag demo-v1,    files of demo_release/
 
 The token is read from the environment variable GITHUB_TOKEN only (a fine-grained token with "Contents: read and write"
@@ -27,7 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REPO = "GuangWei-Zhang-25/AnimalWorld"
 API = "https://api.github.com"
 BUNDLES = {
-    "weights": dict(tag="weights-v1", title="MouseWorld weights v1", folder="weights_release", notes="RELEASE_NOTES.md",
+    "weights": dict(tag="weights-v2", title="MouseWorld weights v2", folder="weights_release", notes="RELEASE_NOTES.md",
                     files=["mouseworld-det.ckpt", "mouseworld-pose.pt", "mouseworld-det-lite.onnx", "mouseworld-pose-lite.onnx",
                            "mouseworld-track-det-a.ckpt", "mouseworld-track-det-b.ckpt", "manifest.json", "SHA256SUMS", "README.md",
                            "NOTICE.md", "LICENSE-AGPL-3.0.txt", "LICENSE-Apache-2.0.txt"]),
