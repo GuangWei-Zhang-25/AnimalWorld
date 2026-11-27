@@ -84,7 +84,8 @@ slots:
   look: [none, none, mono, lowlight, actioncam]
 candidate_patterns:
   arena: ['\b((?:[a-z]+[- ]){1,2}(?:test|maze|task|assay|arena|chamber|paradigm))\b']
-  appearance: ['\b([A-Z][A-Za-z0-9]{1,6}(?:/[A-Za-z0-9]{1,6})+)\b', '\b(\d?x?[A-Z]{2,5}\d{0,3}) mice\b']
+  # matched without regard to case; (?-i:...) keeps the strain-name patterns case-sensitive
+  appearance: ['(?-i:\b([A-Z][A-Za-z0-9]{1,6}(?:/[A-Za-z0-9]{1,6})+)\b)', '(?-i:\b(\d?x?[A-Z]{2,5}\d{0,3}) mice\b)']
 template: >-
   A realistic photograph, {quality}: {arena}. {camera} {lighting}. There {is_are} exactly {count_word} {animal}
   and no other animals: {who}, {definition}, {occlusion}, {scale}, {behaviour}.

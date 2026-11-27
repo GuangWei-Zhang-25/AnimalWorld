@@ -1,6 +1,7 @@
 """Stage 2: generation. Walks prompts/manifest.jsonl as a work queue; resumable; several workers may share it."""
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 from .. import registry
@@ -53,13 +54,17 @@ def run(project: Project, dry_run: bool = False, limit: int = None, backend: str
     try:
         out_dir = vid_dir if be.kind == "video" else img_dir
         out_dir.mkdir(parents=True, exist_ok=True)
+        man = {m["id"]: m for m in mine}
+        t_prev = time.time()
         for res in be.generate(mine, out_dir):
             unit = res["id"]
+            wall = round(time.time() - t_prev, 2)      # wall time of this unit, model call included
             if be.kind == "video":
                 img_dir.mkdir(parents=True, exist_ok=True)
                 files = _extract_frames(Path(res["video"]), img_dir, unit, int(cfg.get("frame_stride", 8)))
             else:
                 files = res.pop("files")
+            W = H = None
             for f in files:
                 from PIL import Image
                 with Image.open(f["file"]) as im:
@@ -68,10 +73,17 @@ def run(project: Project, dry_run: bool = False, limit: int = None, backend: str
                              {"id": f["id"], "unit": unit, "file": str(Path(f["file"]).relative_to(project.root)),
                               "frame": f.get("frame", -1), "W": W, "H": H})
                 images += 1
+            # One log row per unit, the same fields for every backend: `sec` (the backend's own timing when it
+            # gives one, else the wall time measured here), the size that was ASKED for in the manifest and the
+            # size of the files that were actually written (a video backend may use its own size).
             meta = {k: v for k, v in res.items() if k not in ("files",)}
             if "video" in meta:
                 meta["video"] = str(Path(meta["video"]).relative_to(project.root))
+            meta.setdefault("generator", name)
+            meta.setdefault("sec", wall)
+            meta.update(W=W, H=H, requested_W=man[unit].get("W"), requested_H=man[unit].get("H"))
             append_jsonl(project.path("generated", "meta.jsonl"), dict(meta, utc=now_utc(), images=len(files)))
+            t_prev = time.time()
             claims.release(unit)
             made += 1
     finally:

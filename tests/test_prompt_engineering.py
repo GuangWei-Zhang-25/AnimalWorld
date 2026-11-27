@@ -84,7 +84,9 @@ def test_taxonomy_counts_and_weights(project):
     arena = {x["id"]: x for x in tax["slots"]["arena"]}
     assert arena["open_field"]["hits"] == 3 and arena["open_field"]["weight"] > arena["open_field"]["base_weight"]
     assert project.path("taxonomy", "report.md").exists()
-    assert any("marble burying test" in c["phrase"] for c in tax["candidates"]["arena"])
+    # since 0.2.1 a phrase covered by the rule of ANY slot is not a candidate: "marble burying test" is matched by the
+    # behaviour rule "marble" and "resident-intruder assay" by a group-size rule (tests/test_gap_closures.py has the rest)
+    assert not any("marble burying test" in c["phrase"] for c in tax["candidates"]["arena"])
 
 
 def test_prompts_distinct_deterministic_and_append(project):

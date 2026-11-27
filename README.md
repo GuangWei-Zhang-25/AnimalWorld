@@ -45,7 +45,7 @@ SAM 3.1 is optional (`--sam3`; gated licence from Meta) and off by default.
 
 ## More
 
-Full guide: [docs/README_full.md](docs/README_full.md) · install details: [INSTALL.md](INSTALL.md) · Studio (build models for
+Names in the paper and released files: [docs/PAPER_MAP.md](docs/PAPER_MAP.md) · full guide: [docs/README_full.md](docs/README_full.md) · install details: [INSTALL.md](INSTALL.md) · Studio (build models for
 another species): [docs/STUDIO.md](docs/STUDIO.md).
 
-Licence: AGPL-3.0 (code and weights). Improved using Qwen. Demo clips: CC BY 4.0, Guangwei Zhang laboratory.
+Licence: code AGPL-3.0-or-later, model files AGPL-3.0. Improved using Qwen. Demo clips: CC BY 4.0, Guangwei Zhang laboratory.

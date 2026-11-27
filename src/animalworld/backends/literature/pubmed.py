@@ -26,12 +26,27 @@ def parse_efetch(xml_text: str) -> List[dict]:
             if txt:
                 parts.append(f"{a.get('Label')}: {txt}" if a.get("Label") else txt)
         year = art.findtext(".//JournalIssue/PubDate/Year") or (art.findtext(".//JournalIssue/PubDate/MedlineDate") or "")[:4]
+        # The article's OWN identifiers only: PubmedData/ArticleIdList. `art.iter("ArticleId")` would also walk
+        # PubmedData/ReferenceList and return the DOI of a cited paper.
         doi = ""
-        for i in art.iter("ArticleId"):
+        for i in art.findall("./PubmedData/ArticleIdList/ArticleId"):
             if i.get("IdType") == "doi":
                 doi = (i.text or "").strip()
+        if not doi:
+            for i in art.findall(".//Article/ELocationID"):
+                if i.get("EIdType") == "doi":
+                    doi = (i.text or "").strip()
+        authors = []
+        for a in art.findall(".//Article/AuthorList/Author"):
+            name = " ".join(x for x in ((a.findtext("LastName") or "").strip(), (a.findtext("Initials") or "").strip()) if x)
+            name = name or (a.findtext("CollectiveName") or "").strip()
+            if name:
+                authors.append(name)
         out.append({"id": f"PMID:{pmid}", "source": "pubmed", "title": title, "abstract": " ".join(parts),
-                    "year": year or "", "journal": art.findtext(".//Journal/Title") or "", "doi": doi})
+                    "year": year or "", "journal": art.findtext(".//Journal/Title") or "", "doi": doi,
+                    "authors": authors, "volume": (art.findtext(".//JournalIssue/Volume") or "").strip(),
+                    "issue": (art.findtext(".//JournalIssue/Issue") or "").strip(),
+                    "pages": (art.findtext(".//Article/Pagination/MedlinePgn") or "").strip()})
     return out
 
 

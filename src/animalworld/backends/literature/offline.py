@@ -16,6 +16,10 @@ _ALIASES = {
     "year": ("year", "publication_year", "pubyear"),
     "journal": ("journal", "journaltitle"),
     "doi": ("doi",),
+    "authors": ("authors", "author", "authorstring"),
+    "volume": ("volume",),
+    "issue": ("issue",),
+    "pages": ("pages", "pageinfo"),
 }
 
 
@@ -26,6 +30,10 @@ def normalise(row: dict, k: int, source: str) -> dict:
         out[key] = next((low[n] for n in names if low.get(n) not in (None, "")), "")
     out["id"] = str(out["id"] or f"{source}:{k}")
     out["year"] = str(out["year"])[:4]
+    if isinstance(out["authors"], str):
+        out["authors"] = [a.strip() for a in out["authors"].replace(";", ",").split(",") if a.strip()]
+    for k in ("volume", "issue", "pages"):
+        out[k] = str(out[k])
     return out
 
 

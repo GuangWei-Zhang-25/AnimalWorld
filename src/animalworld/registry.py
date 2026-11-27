@@ -33,8 +33,10 @@ _BUILTIN: Dict[str, Dict[str, str]] = {
     "proposers": {
         "mock": _B + "proposers.mock:MockProposer",
         "sam": _B + "proposers.sam:SAMProposer",
-        "yolo": _B + "proposers.yolo:YOLOProposer",
+        "yolo": _B + "proposers.yolo:YOLOProposer",          # a trained model (Ultralytics, ONNX or RF-DETR weights)
+        "model": _B + "proposers.yolo:YOLOProposer",         # the same class under the name that says what it is
         "pose": _B + "proposers.pose:TopDownPoseProposer",
+        "vlm": _B + "proposers.vlm:VLMProposer",
     },
     "trainers": {
         "yolo": _B + "trainers.yolo:YOLOTrainer",

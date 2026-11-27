@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ...registry import BackendError
 from .base import Trainer
 
 
@@ -25,3 +26,12 @@ class SleapDlcExport(Trainer):
         s = R.export_labels(self.project, "sleap", Path(out_dir) / "sleap")
         d = R.export_labels(self.project, "dlc", Path(out_dir) / "dlc")
         return {"weights": None, "sleap": s, "dlc": d, "run_dir": str(out_dir)}
+
+    def export_plan(self, weights, fmt: str) -> dict:
+        return {"backend": self.name, "note": "nothing to export: sleap_dlc writes label files for SLEAP / DeepLabCut; "
+                                              "the model is trained and exported in those tools"}
+
+    def export(self, weights, fmt: str) -> dict:
+        raise BackendError("export: the sleap_dlc backend trains no model here (it writes label files for SLEAP / "
+                           "DeepLabCut), so there are no weights to export. Train and export in SLEAP / DeepLabCut, or "
+                           "train with `animalworld train --backend yolo` or `--backend rfdetr` first.")

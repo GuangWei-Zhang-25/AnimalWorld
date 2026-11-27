@@ -6,11 +6,11 @@ local paths.
 
 | file | model | size | needed for | what it is |
 |---|---|---|---|---|
-| `mouseworld-det.ckpt` | MouseWorld-DET | 146.0 MB | required: full engine | RF-DETR-Seg-L (rfdetr 1.12.0, class RFDETRSegLarge) fine-tune b_full_lr5e5_cos_c04 (selection F1 0.924). Inference-only copy of the training checkpoint. |
-| `mouseworld-pose.pt` | MouseWorld-Pose | 19.8 MB | required: full engine | YOLO11s-pose on 256 px crops, 7 keypoints (nose, ears, neck, hips, tail base); run crop_pose_r3bottom. Ultralytics checkpoint. |
+| `mouseworld-det.ckpt` | MouseWorld-DET | 146.0 MB | required: full engine | RF-DETR-Seg-L (rfdetr 1.12.0, class RFDETRSegLarge) fine-tune b_full_lr5e5_cos_c04 from the epoch-5 checkpoint (selection F1 0.924); the program's default detector. Inference-only copy of the training checkpoint. |
+| `mouseworld-pose.pt` | MouseWorld-Pose | 19.8 MB | required: full engine | YOLO11s-pose on 256 px crops, 7 keypoints (nose, ears, neck, hips, tail base); run crop_pose_r3bottom (configuration r3_b_g050 in the paper: this file with gamma 0.5 on dark crops). Ultralytics checkpoint. |
 | `mouseworld-det-lite.onnx` | MouseWorld-DET-Lite | 40.8 MB | required: CPU engine | YOLO11s-seg exported to ONNX (768 px). |
 | `mouseworld-pose-lite.onnx` | MouseWorld-Pose (CPU, earlier checkpoint) | 40.1 MB | required: CPU engine | YOLO11s-pose crop model exported to ONNX (256 px). An EARLIER checkpoint than mouseworld-pose.pt. |
-| `mouseworld-track-det-a.ckpt` | MouseWorld-Track detector A ('epoch5') | 146.0 MB | required: full engine (default tracker configuration scored_pair) | Earlier RF-DETR-Seg-L checkpoint; first detector of the default tracker configuration (with detector B: the pair the published tracking numbers were measured with). |
+| `mouseworld-track-det-a.ckpt` | MouseWorld-Track detector A ('epoch5') | 146.0 MB | required: full engine (default tracker configuration scored_pair) | The epoch-5 RF-DETR-Seg-L checkpoint: the one scored as MouseWorld-DET in the paper's detection figures (threshold 0.20). First detector of the default tracker configuration (with detector B: the pair the published tracking numbers were measured with). |
 | `mouseworld-track-det-b.ckpt` | MouseWorld-Track detector B ('mid_1408') | 146.0 MB | required: full engine (default tracker configuration scored_pair) | Earlier RF-DETR-Seg-L checkpoint; second, independent seed of the SAM 2.1 witnesses in the default tracker configuration. |
 
 Total: 539 MB. The full (GPU) engine needs four of the files (458 MB), the CPU engine the two ONNX files. Every file is far below
@@ -46,6 +46,12 @@ By hand (offline computer, shared lab folder): download the files and put them, 
 | `sam3.1_multiplex.pt` (SAM 3.1, Meta) | 3.5 GB | SAM License, gated | accept the licence at https://huggingface.co/facebook/sam3.1 , then `huggingface-cli download facebook/sam3.1 sam3.1_multiplex.pt`; the app finds it in the Hugging Face cache or in the weights folder |
 
 Both are needed only for the full (GPU) engine. The CPU engine needs neither.
+
+## Names in the paper
+
+Which file is behind each model name in the manuscript: `docs/PAPER_MAP.md` in the repository. In short, the checkpoint
+scored as MouseWorld-DET in the detection figures is `mouseworld-track-det-a.ckpt`; `mouseworld-det.ckpt` is a later
+fine-tune of it and the program's default detector.
 
 ## Licences
 

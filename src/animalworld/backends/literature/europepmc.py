@@ -42,6 +42,10 @@ class EuropePMC(LiteratureBackend):
                     "year": str(r.get("pubYear") or ""),
                     "journal": ((r.get("journalInfo") or {}).get("journal") or {}).get("title") or "",
                     "doi": r.get("doi") or "",
+                    "authors": [a.strip().rstrip(".") for a in (r.get("authorString") or "").split(",") if a.strip()],
+                    "volume": str((r.get("journalInfo") or {}).get("volume") or ""),
+                    "issue": str((r.get("journalInfo") or {}).get("issue") or ""),
+                    "pages": str(r.get("pageInfo") or ""),
                 })
             nxt = data.get("nextCursorMark")
             if not results or not nxt or nxt == cursor:

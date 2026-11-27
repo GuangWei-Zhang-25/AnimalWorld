@@ -43,11 +43,12 @@ REGISTRY: Dict[str, dict] = {
     "mouseworld-det": dict(
         file="mouseworld-det.ckpt", size=146037082, own=True, title="MouseWorld-DET",
         sha256="67c7866edf0ee23ce6d0b5fc201afa914ebde0e7c28e74c4bd43d7479498ffb3",
-        about="RF-DETR-Seg-L detector + outlines (fine-tune b_full_lr5e5_cos_c04, selection F1 0.924); inference-only copy"),
+        about="RF-DETR-Seg-L detector + outlines (fine-tune b_full_lr5e5_cos_c04 from the epoch-5 checkpoint, selection F1 0.924); "
+              "the program's default detector; inference-only copy"),
     "mouseworld-pose": dict(
         file="mouseworld-pose.pt", size=19756597, own=True, title="MouseWorld-Pose",
         sha256="fc81ae3a7f3f9e82d514f54e849789076a930f0ca5ca73ba8ff11cab096f9868",
-        about="7 keypoints per mouse on a 256 px crop (YOLO11s-pose, run crop_pose_r3bottom)"),
+        about="7 keypoints per mouse on a 256 px crop (YOLO11s-pose, run crop_pose_r3bottom; r3_b_g050 in the paper)"),
     "mouseworld-det-lite": dict(
         file="mouseworld-det-lite.onnx", size=40753393, own=True, title="MouseWorld-DET-Lite",
         sha256="535cb600eaa33927727e82c967d53625c6791d7b99966624b1a4d77d697aa366",
@@ -59,7 +60,8 @@ REGISTRY: Dict[str, dict] = {
     "mouseworld-track-det-a": dict(
         file="mouseworld-track-det-a.ckpt", size=146041778, own=True, title="MouseWorld-Track detector A",
         sha256="43cfdd42dd5e79ab14b3c3686ef2321be2becdb825fba2c6748fa0ae4cf57a96",
-        about="RF-DETR-Seg-L 'epoch5'; first detector of the default tracker configuration (scored_pair)"),
+        about="RF-DETR-Seg-L 'epoch5': the checkpoint scored as MouseWorld-DET in the paper's detection figures; first "
+              "detector of the default tracker configuration (scored_pair)"),
     "mouseworld-track-det-b": dict(
         file="mouseworld-track-det-b.ckpt", size=146041778, own=True, title="MouseWorld-Track detector B",
         sha256="109fbca8d75611c2edceb39948118b1623796e3e1dc28847c7cfde6af094506c",

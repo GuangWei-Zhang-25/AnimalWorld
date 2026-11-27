@@ -46,22 +46,24 @@ def export_dlc(docs: List[dict], kp_names: List[str], out_dir: Path, image_root:
     csv_path = folder / f"CollectedData_{scorer}.csv"
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         csv.writer(f).writerows(rows)
-    h5 = None
+    h5, why = None, ""
     try:                                       # optional: DLC reads the .h5; `deeplabcut.convertcsv2h5` also makes it
         import pandas as pd
         nh = 4 if multi else 3
         df = pd.read_csv(csv_path, header=list(range(nh)), index_col=[0, 1, 2])
         h5 = folder / f"CollectedData_{scorer}.h5"
         df.to_hdf(h5, key="df_with_missing", mode="w")
-    except Exception:
-        h5 = None
+    except ImportError as e:
+        h5, why = None, f"pandas / tables could not be imported ({e})"
+    except Exception as e:                     # e.g. a numpy / tables binary mismatch: say what actually failed
+        h5, why = None, f"{type(e).__name__}: {e}"
     (out_dir / "config_snippet.yaml").write_text(
         "# Paste into your DeepLabCut config.yaml (or create the project with these body parts).\n"
         f"scorer: {scorer}\n" + ("multianimalproject: true\nindividuals:\n" + "".join(f"- {i}\n" for i in inds) +
                                   "multianimalbodyparts:\n" if multi else "bodyparts:\n") +
         "".join(f"- {k}\n" for k in kp_names) + f"video_sets:\n  {video}: {{crop: '0, 0, 0, 0'}}\n", encoding="utf-8")
     return {"csv": str(csv_path), "h5": str(h5) if h5 else None, "images": n, "multi_animal": bool(multi),
-            "note": None if h5 else "no .h5 written (pandas + tables not installed): run deeplabcut.convertcsv2h5(config)"}
+            "note": None if h5 else f"no .h5 written ({why}); the .csv is complete: run deeplabcut.convertcsv2h5(config)"}
 
 
 def import_dlc(csv_path: Path, sizes: Dict[str, tuple] = None, category: str = "animal", margin: float = 0.25) -> dict:

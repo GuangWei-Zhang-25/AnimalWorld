@@ -61,6 +61,11 @@
 * `prompts/manifest.jsonl`: `id, index, cell, n, appearance[], slots{}, look, W, H, seed, prompt,
   negative_prompt, u, split`.
 * `generated/index.jsonl`: `id, unit, file, frame, W, H` (one row per image; `unit` = manifest id).
-* label document (`labels/*/ID.json`): see `formats/labels.py`.
+* `generated/meta.jsonl`: one row per unit: `id, generator, sec, W, H, requested_W, requested_H, utc, images`
+  plus what the backend adds (`gpu`, `video`, `frames`, `fps`, `video_W`, `video_H`, ...). `W, H` are the size of the
+  files that were written; `requested_W, requested_H` come from the manifest.
+* label document (`labels/*/ID.json`): see `formats/labels.py`. Review records add `unit, origin, reviewed_utc,
+  proposal_source, edited`; proposals of multi-frame units carry a proposed `track_id` per instance
+  (`identity_source: iou_link`).
 * `predictions/NAME/frames.jsonl`, `tracks/NAME/tracks.jsonl`: `frame, name, instances[]`;
   `tracks.csv`: `frame, id, x0, y0, x1, y1, score, <keypoint>_x, <keypoint>_y ...`.

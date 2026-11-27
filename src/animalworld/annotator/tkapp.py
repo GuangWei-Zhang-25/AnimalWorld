@@ -7,6 +7,7 @@ Keys (same as the earlier web annotator):
     A accept      R reject      B draw a box (drag)      P draw an outline (click points, Enter closes)
     K place keypoints in order on the selected animal    Delete remove the selected animal / keypoint
     V visible <-> hidden for the selected keypoint       Ctrl+Z undo      Esc cancel the tool
+    0 .. 9 set the identity (track id) of the selected animal; it is drawn as "id N" at the box
     Up / Down (or PgUp / PgDn) previous / next image     wheel or + / - zoom      middle-drag or space-drag pan      F fit
 Click selects; drag a box to move it, a corner handle to resize it, a keypoint or an outline vertex to move it.
 
@@ -129,7 +130,7 @@ class AnnotatorWindow(tk.Toplevel):
         self.kp_list = th.listbox(kf, height=max(4, min(12, len(self.kp_names))), exportselection=False, font=th.font_mono, width=26)
         self.kp_list.pack(fill="x")
         ttk.Label(right, textvariable=self.msg_var, wraplength=S(220), justify="left", style="Caption.TLabel").pack(fill="x", pady=S(6))
-        ttk.Label(right, text="wheel: zoom   middle-drag: pan\nV: keypoint visible / hidden\nEsc: cancel tool",
+        ttk.Label(right, text="wheel: zoom   middle-drag: pan\nV: keypoint visible / hidden\n0-9: identity of the selected animal\nEsc: cancel tool",
                   justify="left", style="Small.TLabel").pack(anchor="w", side="bottom")
 
         self.canvas = tk.Canvas(self, highlightthickness=0, cursor="tcross")
@@ -494,6 +495,9 @@ class AnnotatorWindow(tk.Toplevel):
             self.fit()
         elif k == "space":
             self._space = True
+        elif k in "0123456789" and len(k) == 1 and not ctrl and self.doc and self.doc.selected is not None:
+            self.doc.set_track_id(self.doc.selected, int(k))         # identity within the clip (frames of one unit)
+            self.redraw()
         elif k == "v" and self.doc and self.doc.selected is not None and self.sel_kp:
             self.doc.toggle_visibility(self.doc.selected, self.sel_kp)
             self.redraw()
@@ -533,7 +537,9 @@ class AnnotatorWindow(tk.Toplevel):
             bx0, by0 = v.to_canvas(ins["box"][0], ins["box"][1])
             bx1, by1 = v.to_canvas(ins["box"][2], ins["box"][3])
             c.create_rectangle(bx0, by0, bx1, by1, outline=col, width=z(3) if sel else z(1), dash=() if sel else (z(4), z(3)))
-            c.create_text(bx0 + z(3), by0 - z(2), anchor="sw", fill=col, text=f"{i + 1}", font=self.th.font_bold)
+            tid = ins.get("track_id")
+            c.create_text(bx0 + z(3), by0 - z(2), anchor="sw", fill=col, font=self.th.font_bold,
+                          text=f"{i + 1}" if tid is None else f"{i + 1}  id {tid}")
             if sel:
                 for hx, hy in d.handle_points(i).values():
                     cx, cy = v.to_canvas(hx, hy)

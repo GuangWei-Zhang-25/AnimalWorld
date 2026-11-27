@@ -30,7 +30,8 @@ DEFAULTS: Dict[str, Any] = {
         "contact_email": "",           # optional, sent to the literature API only if you fill it in
         "rate_limit_s": 0.5,
     },
-    "taxonomy": {"min_hits": 1, "max_candidates": 30, "literature_weight": 1.0},
+    "taxonomy": {"min_hits": 1, "max_candidates": 30, "literature_weight": 1.0,
+                 "candidate_stop_words": []},          # extra words that disqualify a candidate phrase
     "prompts": {
         "n": 40, "seed": 0, "writer": "template", "writer_options": {},
         "min_distinct": 0.95, "empty_fraction": 0.05, "val_fraction": 0.05,
@@ -39,6 +40,7 @@ DEFAULTS: Dict[str, Any] = {
     "generate": {"backend": "mock", "options": {}, "frame_stride": 8},
     "propose": {
         "backend": "mock", "options": {},
+        "link_identities": True,       # multi-frame units: proposed identity (track_id) per instance, by box linking
         "gates": {"min_score": 0.5, "count_gate": True, "min_area_frac": 2e-4, "max_area_frac": 0.2,
                   "max_border_frac": 0.4},
     },

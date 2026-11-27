@@ -69,7 +69,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--limit", type=int)
     p = _stage_parser(sub, "propose", "proposal models label the images")
     p.add_argument("--backend")
-    p.add_argument("--weights")
+    p.add_argument("--weights", help="weights for --backend model / pose: .pt, .onnx, or an RF-DETR .pth / .ckpt")
     p.add_argument("--limit", type=int)
     p.add_argument("--force", action="store_true", help="re-propose images that are not reviewed yet")
     p.add_argument("--include-reviewed", action="store_true")
@@ -107,9 +107,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--format", dest="fmt", required=True, choices=("coco", "yolo", "dlc", "sleap"))
     p.add_argument("path", help="COCO json | folder of YOLO txt | CollectedData_*.csv | .slp or COCO json")
     p.add_argument("--images", help="folder with the images (default: next to the labels)")
-    p = sub.add_parser("export-labels", help="export accepted labels to COCO / DeepLabCut / SLEAP")
+    p.add_argument("--status", choices=("accepted", "proposed"), default="accepted",
+                   help="accepted (default): trusted as they are, origin 'import'; proposed: they wait for review")
+    p = sub.add_parser("export-labels", help="export accepted labels to COCO / YOLO / DeepLabCut / SLEAP")
     p.add_argument("project")
-    p.add_argument("--format", dest="fmt", required=True, choices=("coco", "dlc", "sleap"))
+    p.add_argument("--format", dest="fmt", required=True, choices=("coco", "yolo", "dlc", "sleap"))
+    p.add_argument("--task", choices=("detect", "segment", "pose"), help="YOLO only (default: dataset.task)")
     p.add_argument("--out")
     p = sub.add_parser("demo-recording", help="write a small synthetic recording (frames) to try predict / track")
     p.add_argument("out")
@@ -248,10 +251,10 @@ def main(argv=None) -> int:
             _print(review.add_images(pr, Path(a.folder)))
         elif a.cmd == "import-labels":
             from .stages import review
-            _print(review.import_labels(pr, a.fmt, Path(a.path), Path(a.images) if a.images else None))
+            _print(review.import_labels(pr, a.fmt, Path(a.path), Path(a.images) if a.images else None, status=a.status))
         elif a.cmd == "export-labels":
             from .stages import review
-            _print(review.export_labels(pr, a.fmt, Path(a.out) if a.out else None))
+            _print(review.export_labels(pr, a.fmt, Path(a.out) if a.out else None, task=a.task))
         elif a.cmd in STAGES:
             kw = {k: v for k, v in vars(a).items() if k not in ("cmd", "project", "set") and v is not None}
             if a.cmd == "train" and a.set:

@@ -61,9 +61,13 @@ class RFDETRPredictor(Predictor):
         w = self.opt.get("weights")
         if not w or not os.path.exists(str(w)):
             raise BackendError(f"rfdetr predictor: checkpoint not found: {w}")
-        self.model = rfdetr.RFDETR.from_checkpoint(str(w), trust_checkpoint=True)
+        cls = getattr(rfdetr, "RFDETR", None)
+        if cls is None:                                   # some rfdetr versions export it from rfdetr.detr only
+            from rfdetr.detr import RFDETR as cls
+        self.model = cls.from_checkpoint(str(w), trust_checkpoint=True)
 
     def predict(self, image) -> List[dict]:
+        import numpy as np
         det = self.model.predict(image, threshold=self.conf)
         inst = []
         for k in range(len(det.xyxy)):
@@ -71,7 +75,7 @@ class RFDETRPredictor(Predictor):
             if getattr(det, "mask", None) is not None:
                 from ..proposers.base import mask_to_polygon
                 try:
-                    poly, _, _ = mask_to_polygon(det.mask[k])
+                    poly, _, _ = mask_to_polygon(np.asarray(det.mask[k]).astype(bool))
                 except BackendError:
                     poly = None
             inst.append(L.instance(self.category, [float(v) for v in det.xyxy[k]], poly, None, score=float(det.confidence[k])))

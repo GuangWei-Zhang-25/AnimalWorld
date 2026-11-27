@@ -22,11 +22,33 @@ def reviewed(project: Project, iid: str) -> Optional[dict]:
     return read_json(project.path("labels", "reviewed", f"{iid}.json"))
 
 
+def _geometry(instances: List[dict]) -> list:
+    """What a reviewer can change, rounded to 0.1 px, in a form that compares equal for an untouched proposal."""
+    r = lambda v: round(float(v), 1)                                     # noqa: E731
+    out = []
+    for i in instances or []:
+        kp = {k: [r(v[0]), r(v[1]), int(v[2])] for k, v in (i.get("keypoints") or {}).items() if v and int(v[2]) > 0}
+        out.append(([r(v) for v in i["box"]], [[r(x), r(y)] for x, y in (i.get("poly") or [])], sorted(kp.items()),
+                    i.get("track_id")))
+    return sorted(out, key=repr)
+
+
 def save_review(project: Project, row: dict, status: str, instances: List[dict], origin: str, source: str = "") -> dict:
+    """Write the review record of one image.
+
+    origin: who decided: "human" (annotator window), "auto" (automatic acceptance) or "import".
+    The record also keeps `proposal_source` (the proposal model the reviewer started from, or None when there was
+    no proposal) and `edited` (True when the stored boxes / outlines / keypoints / identities differ from that
+    proposal by more than 0.1 px, False when they do not, None when there was no proposal to compare with), so
+    accepted-as-proposed and corrected-then-accepted can be counted apart.
+    """
     if status not in ("accepted", "rejected"):
         raise ValueError("status must be accepted or rejected")
+    pr = proposed(project, row["id"])
     doc = L.label(row["id"], row["file"], row["W"], row["H"], instances, source=source or origin, status=status,
-                  unit=row.get("unit", row["id"]), origin=origin, reviewed_utc=now_utc())
+                  unit=row.get("unit", row["id"]), origin=origin, reviewed_utc=now_utc(),
+                  proposal_source=pr.get("source") if pr else None,
+                  edited=(_geometry(instances) != _geometry(pr["instances"])) if pr else None)
     write_json(project.path("labels", "reviewed", f"{row['id']}.json"), doc)
     return doc
 
@@ -34,7 +56,7 @@ def save_review(project: Project, row: dict, status: str, instances: List[dict],
 def counts(project: Project) -> dict:
     rows = index_rows(project)
     c = {"images": len(rows), "proposed": 0, "passed_gates": 0, "accepted": 0, "rejected": 0, "pending": 0,
-         "accepted_by_human": 0}
+         "accepted_by_human": 0, "accepted_after_edit": 0}
     for r in rows:
         rv, pr = reviewed(project, r["id"]), proposed(project, r["id"])
         if pr:
@@ -43,6 +65,7 @@ def counts(project: Project) -> dict:
         if rv:
             c[rv["status"]] += 1
             c["accepted_by_human"] += int(rv["status"] == "accepted" and rv.get("origin") == "human")
+            c["accepted_after_edit"] += int(rv["status"] == "accepted" and rv.get("origin") == "human" and bool(rv.get("edited")))
         else:
             c["pending"] += 1
     return c
@@ -102,7 +125,15 @@ def add_images(project: Project, folder: Path, copy: bool = True) -> dict:
 
 def import_labels(project: Project, fmt: str, path: Path, images: Path = None, status: str = "accepted") -> dict:
     """Import labels made elsewhere. Images are matched by file stem; unknown images are registered first
-    from `images` (or from the folder of the label file)."""
+    from `images` (or from the folder of the label file).
+
+    status "accepted" (default): the labels are trusted as they are and written to labels/reviewed with
+    origin "import", so they enter the dataset without passing the annotator.
+    status "proposed": they are written to labels/proposed (source "import:<format>") and wait for review like
+    the output of a proposal model; images that already have a review record keep it.
+    """
+    if status not in ("accepted", "proposed"):
+        raise ValueError("status must be accepted or proposed")
     path = Path(path)
     cat = project.categories()[0]
     kp = project.keypoints()
@@ -143,12 +174,19 @@ def import_labels(project: Project, fmt: str, path: Path, images: Path = None, s
             continue
         for i in d["instances"]:
             i["category"] = cat if len(project.categories()) == 1 else i["category"]
-        save_review(project, r, status, d["instances"], "import", f"import:{fmt}")
+        if status == "proposed":
+            write_json(project.path("labels", "proposed", f"{r['id']}.json"),
+                       L.label(r["id"], r["file"], r["W"], r["H"], d["instances"], source=f"import:{fmt}",
+                               unit=r.get("unit", r["id"])))
+        else:
+            save_review(project, r, status, d["instances"], "import", f"import:{fmt}")
         n += 1
-    return {"format": fmt, "imported": n, "images_not_found": miss}
+    return {"format": fmt, "imported": n, "images_not_found": miss, "status": status,
+            "note": ("written to labels/proposed: review them with `animalworld review --gui`" if status == "proposed" else
+                     "written to labels/reviewed as accepted with origin 'import' (not reviewed in this package)")}
 
 
-def export_labels(project: Project, fmt: str, out: Path = None) -> dict:
+def export_labels(project: Project, fmt: str, out: Path = None, task: str = None) -> dict:
     docs = accepted_docs(project)
     out = Path(out) if out else project.path("exchange", fmt)
     out.mkdir(parents=True, exist_ok=True)
@@ -164,7 +202,19 @@ def export_labels(project: Project, fmt: str, out: Path = None) -> dict:
     if fmt == "sleap":
         from ..formats import sleap
         return dict(sleap.export_sleap(docs, cats, kp, skel, out, project.root), format=fmt)
-    raise ValueError("format must be coco, dlc or sleap (YOLO is written by `animalworld dataset`)")
+    if fmt == "yolo":
+        # Label files only, without the train / val split and the image copies that `animalworld dataset` makes.
+        from ..formats import yolo
+        task = task or project.cfg["dataset"]["task"]
+        (out / "labels").mkdir(exist_ok=True)
+        for d in docs:
+            (out / "labels" / f"{d['id']}.txt").write_text(yolo.to_lines(d, cats, task, kp), encoding="utf-8")
+        (out / "classes.txt").write_text("".join(c + "\n" for c in cats), encoding="utf-8")
+        (out / "images.txt").write_text("".join(str((project.root / d["file"]).resolve()) + "\n" for d in docs), encoding="utf-8")
+        return {"format": fmt, "task": task, "images": len(docs), "labels": str(out / "labels"), "classes": str(out / "classes.txt"),
+                "image_list": str(out / "images.txt"),
+                "note": "label files only; `animalworld dataset` writes the complete YOLO dataset (images, split, data.yaml)"}
+    raise ValueError("format must be coco, yolo, dlc or sleap")
 
 
 def run(project: Project, dry_run: bool = False, auto: bool = None, **_) -> dict:

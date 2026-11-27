@@ -6,6 +6,11 @@
      "instances": [{"category": "mouse", "box": [x0, y0, x1, y1], "poly": [[x, y], ...] | null,
                     "keypoints": {"nose": [x, y, v], ...} | null, "score": 0.93, "track_id": null}]}
 
+Review records (labels/reviewed) add: "unit", "origin" ("human" | "auto" | "import"), "reviewed_utc",
+"proposal_source" (the proposal model the reviewer started from, or null) and "edited" (true / false: the stored
+labels differ / do not differ from that proposal; null when there was none). Proposals of multi-frame units carry
+"identity_source": "iou_link" and a proposed "track_id" per instance (see stages/propose.py).
+
 Boxes are absolute pixels, x1/y1 exclusive-ish floats. Keypoint visibility v: 0 not labelled,
 1 labelled but hidden, 2 visible (COCO convention).
 """
@@ -60,7 +65,8 @@ def apply_gates(doc: dict, expected_n: Optional[int], gates: Dict[str, Any]) -> 
 
     Instances below `min_score` or outside the area band are dropped; the IMAGE is then rejected when
     the count differs from the prompted count (count gate), when an empty scene has a detection, or
-    when an outline lies largely on the image border.
+    when an outline lies largely on the image border (for an instance without an outline: when that
+    share of its box perimeter lies on the border, e.g. 0.5 for a box in a corner).
     """
     W, H = doc["W"], doc["H"]
     area_img = float(W * H)
@@ -84,9 +90,14 @@ def apply_gates(doc: dict, expected_n: Optional[int], gates: Dict[str, Any]) -> 
             pts = i.get("poly") or []
             if pts:
                 on = sum(1 for x, y in pts if x <= 0.5 or y <= 0.5 or x >= W - 1.5 or y >= H - 1.5) / len(pts)
-                if on >= mb:
-                    reason = "border"
-                    break
+            else:                                   # no outline (a detector or VLM that returns boxes): the share
+                x0, y0, x1, y1 = i["box"]           # of the BOX perimeter that lies on the image border
+                w, h = max(0.0, x1 - x0), max(0.0, y1 - y0)
+                on = ((h if x0 <= 0.5 else 0.0) + (h if x1 >= W - 1.5 else 0.0) + (w if y0 <= 0.5 else 0.0)
+                      + (w if y1 >= H - 1.5 else 0.0)) / max(1e-9, 2 * (w + h))
+            if on >= mb:
+                reason = "border"
+                break
     out = dict(doc)
     out.update(instances=kept_inst, kept=not reason, reason=reason, n_raw=n_raw, expected_n=expected_n)
     return out

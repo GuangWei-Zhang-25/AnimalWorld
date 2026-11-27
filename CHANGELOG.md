@@ -1,5 +1,59 @@
 # Changelog
 
+## 0.2.1 (27 November 2026)
+
+The zero-shot engine (Animal World Run, MouseWorld-Track rule set v7j) is unchanged from 0.2.0; the demo's expected
+results were recorded with 0.2.0 and still apply.
+
+Added
+- `docs/PAPER_MAP.md`: which released file is behind each model name in the manuscript (the checkpoint scored as
+  MouseWorld-DET in the detection figures is `mouseworld-track-det-a.ckpt`), and where the packaged program's settings
+  differ from those of the figures.
+- `zeroshot/mwtrack/PROVENANCE.md` now gives the hash of the frozen v7j rule file and of every vendored tracker file as
+  shipped; `tests/test_provenance.py` checks them.
+
+Changes that make the package do what the manuscript's Methods ("Software architecture and workflow") says.
+What was executed for real and what was not is listed in `docs/BACKENDS.md` ("What has been run, and what has not").
+
+Fixed
+- **PubMed records carried the DOI of a cited paper.** The parser walked every `ArticleId`, including the reference
+  list, and kept the last one (3 of 5 records in a live check). It now reads the article's own
+  `PubmedData/ArticleIdList` (and `ELocationID`) only.
+- The border gate skipped instances without an outline. It now falls back to the share of the box perimeter on the
+  image border, so box-only proposals (a detector, the VLM proposer) are filtered too.
+- DeepLabCut export reported "pandas + tables not installed" for any failure; it now reports the real error.
+- `animalworld export` after the `sleap_dlc` backend gives an explicit message instead of `NotImplementedError`.
+- RF-DETR predictor: works with rfdetr versions that export `RFDETR` from `rfdetr.detr` only.
+
+Added
+- Literature records keep `authors`, `volume`, `issue`, `pages` (PubMed, Europe PMC, offline files). Cached pages are
+  raw answers, so `literature --force` re-parses them with the new fields; older `records.jsonl` files stay readable.
+- Taxonomy candidates: matched without regard to case (wrap a pattern in `(?-i:...)` to keep it case-sensitive, as the
+  strain-name patterns of the mouse example now do); a phrase covered by the rule of ANY slot is no longer a candidate;
+  phrases containing verbs, prepositions, numerals or pronouns ("was to test", "on the pen", "one pen") are dropped;
+  `taxonomy.candidate_stop_words` extends that list. Behaviour change: the bundled mouse sample now yields no
+  candidates, because "marble burying test" and "resident-intruder assay" are covered by behaviour / group-size rules.
+- Generation log (`generated/meta.jsonl`): `sec`, `W`, `H` (files written), `requested_W`, `requested_H` (manifest) for
+  every backend, the mock generator included; the Wan adapter records `video_W`, `video_H`, `steps`.
+- `propose --backend model` (alias of `yolo`): the newest weights under `models/` now include RF-DETR checkpoints;
+  `.pth` / `.ckpt` files go to the `rfdetr` predictor, so `--weights mouseworld-det.ckpt` works.
+- `vlm` proposer: an image and a prompt built from the project (species, animal count, keypoint names) go to an
+  OpenAI-compatible vision chat endpoint or to the Anthropic API; strict JSON parsing into boxes and optional
+  keypoints; same gates as other proposals. **Not yet run against a live service** (local stub server only).
+- Proposed identities: for units with several frames, `propose` links the boxes over the frames (the `iou` tracker) and
+  writes a `track_id` per instance (`propose.link_identities`). The annotator draws the id and the keys 0-9 set it
+  (a swap when the id is taken). Box linking only; no SAM 2.1 video propagation, no clip timeline.
+- Review records keep `proposal_source` and `edited`; `status` reports `accepted_after_edit`.
+- `export-labels --format yolo` (label files; `dataset` still writes the full YOLO dataset) and
+  `import-labels --status proposed|accepted` (default `accepted`, stored with `origin: import`).
+- `examples/pig/README.md`; the mouse README says that the mock run plans training but does not execute it.
+- Tests: `tests/test_gap_closures.py` (PubMed fixture with reference-list DOIs, video frame extraction from a
+  synthetic mp4, VLM stub server, identity linking, annotator identity keys, and the items above).
+
+Real runs for this version (26 November 2026): one Wan 2.2 clip through `generate` with frame extraction; the released
+RF-DETR checkpoint as proposal model; YOLO pose training with top-down crops on mock renders and that checkpoint as
+the proposer of a second round; the annotator window tests under a virtual display.
+
 ## 0.2.0 (unreleased; prepared 20 November 2026)
 
 First version meant for other people. Nothing is published yet.

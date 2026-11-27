@@ -12,6 +12,12 @@ animalworld pipeline mouse_demo --auto-accept --train-dry-run
 animalworld status mouse_demo
 ```
 
+This run makes 40 mock images, proposes and accepts their labels automatically and builds the dataset. **It does
+not train a model**: `--train-dry-run` only prints the training and export calls, and without it `train` would stop
+anyway, because 40 accepted images are below `train.min_accepted_images` (200). Training is planned, not executed,
+until you have that many accepted images (or pass `--force` for a small model). `predict` and `track` report
+`waiting` for the same reason.
+
 ## 2. Real literature
 
 ```yaml
@@ -54,8 +60,10 @@ propose:
 ```bash
 animalworld propose mouse_demo
 animalworld review mouse_demo --gui         # accept / correct / reject in the annotator window
-animalworld export-labels mouse_demo --format sleap    # or dlc; correct there, then
+animalworld export-labels mouse_demo --format sleap    # or dlc, coco, yolo; correct there, then
 animalworld import-labels mouse_demo --format dlc path/to/CollectedData_x.csv
+# imported labels are stored as accepted with origin "import" (not reviewed here); add --status proposed to review them
+animalworld propose mouse_demo --backend model --weights path/to/mouseworld-det.ckpt   # a trained or released checkpoint
 ```
 
 ## 5. Dataset, training, deployment

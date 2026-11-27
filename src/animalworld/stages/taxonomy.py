@@ -19,7 +19,37 @@ from ..utils import read_jsonl, write_json, atomic_write_text
 DEFAULT_CANDIDATES = {
     "arena": [r"\b((?:[a-z]+[- ]){1,2}(?:test|maze|task|assay|arena|chamber|paradigm|pen|tank|enclosure))\b"],
 }
-STOP = {"the", "a", "an", "this", "that", "each", "in", "of", "for", "and", "our", "to", "with", "per", "during"}
+# Leading words that are stripped from a candidate ("the open field test" -> "open field test").
+STOP = {"the", "a", "an", "this", "that", "these", "those", "each", "every", "our", "their", "its", "his", "her", "and", "or"}
+# A candidate that still contains one of these is not a name ("was to test", "on the pen", "pigs per pen", "one pen"):
+# it is dropped. Extend the list with taxonomy.candidate_stop_words in project.yaml.
+NOT_A_NAME = {
+    "is", "are", "was", "were", "be", "been", "being", "has", "have", "had", "do", "does", "did", "can", "could", "may",
+    "might", "will", "would", "should", "must", "used", "using", "use", "performed", "conducted", "tested", "placed",
+    "in", "on", "at", "of", "for", "to", "from", "by", "with", "without", "per", "during", "while", "when", "where",
+    "after", "before", "into", "onto", "under", "over", "between", "within", "across", "through", "than", "as", "but",
+    "if", "then", "that", "which", "who", "whose", "not", "no", "also", "both", "all", "any", "some", "same", "other",
+    "another", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "first", "second", "third",
+    "we", "they", "it", "he", "she", "i", "you",
+}
+
+
+def _clean_candidate(raw: str, drop: set):
+    """A matched phrase -> the candidate to count, or None. Words are lower-cased unless they carry a capital after
+    their first letter (EPM, C57BL/6J, BALB/c), so "The Zebra Maze" and "the zebra maze" are one candidate."""
+    words = raw.split()
+    if len(words) > 1 and all(w.isupper() for w in words if any(ch.isalpha() for ch in w)):
+        words = [w.lower() for w in words]                       # a phrase written in capitals (a heading)
+    words = [w if any(ch.isupper() for ch in w[1:]) else w.lower() for w in words]
+    multi = len(words) > 1
+    while words and words[0].lower() in STOP:
+        words = words[1:]
+    if len(words) < (2 if multi else 1):
+        return None
+    if any(p.lower() in drop for w in words for p in w.split("-")):
+        return None
+    ph = " ".join(words)
+    return ph if len(ph) >= 3 else None
 
 
 def run(project: Project, dry_run: bool = False, **_) -> dict:
@@ -53,24 +83,24 @@ def run(project: Project, dry_run: bool = False, **_) -> dict:
             r["weight"] = round(r["base_weight"] * (1.0 + lw * boost), 4)
         result[slot] = rows
         weights[slot] = {str(r["id"]): r["weight"] for r in rows}
-    # candidate phrases not covered by any rule
+    # Candidate phrases not covered by any rule. The patterns are configurable (slots.yaml: candidate_patterns,
+    # one list of regular expressions per slot, the phrase in group 1); they are matched without regard to case
+    # (wrap a pattern in (?-i:...) to keep it case-sensitive, as the strain-name patterns of the mouse example do).
+    # A phrase is "covered" when the keyword rule of ANY slot matches it, not only a rule of its own slot.
     pats = dict(DEFAULT_CANDIDATES); pats.update(slots.get("candidate_patterns") or {})
+    drop = NOT_A_NAME | {str(w).lower() for w in (cfg.get("candidate_stop_words") or [])}
+    known = [re.compile("|".join(f"(?:{k})" for k in e["keywords"]), re.I)
+             for values in (slots.get("slots") or {}).values() for e in norm_entries(values) if e.get("keywords")]
     cands = {}
     for slot, plist in pats.items():
-        known = [re.compile("|".join(f"(?:{k})" for k in e["keywords"]), re.I)
-                 for e in norm_entries((slots.get("slots") or {}).get(slot)) if e.get("keywords")]
         c = Counter()
         for t in texts:
             found = set()
             for p in plist:
-                for m in re.finditer(p, t):
-                    ph = m.group(1).strip()
-                    words = ph.split()
-                    while words and words[0].lower() in STOP:
-                        words = words[1:]
-                    ph = " ".join(words)
-                    if len(ph) >= 3 and len(words) >= (2 if ' ' in m.group(1).strip() else 1) and not any(k.search(ph) for k in known):
-                        found.add(ph if any(ch.isupper() for ch in ph[1:]) else ph.lower())
+                for m in re.finditer(p, t, re.I):
+                    ph = _clean_candidate(m.group(1).strip(), drop)
+                    if ph and not any(k.search(ph) for k in known):
+                        found.add(ph)
             c.update(found)
         cands[slot] = [{"phrase": p, "records": n} for p, n in c.most_common(int(cfg.get("max_candidates", 30))) if n >= 2]
     tax = {"species": project.species, "records": len(recs), "rules": n_rules, "slots": result, "weights": weights,

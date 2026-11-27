@@ -122,7 +122,7 @@ animalworld track demo
 | Prompt engineering: keywords / taxonomy | `taxonomy` | regex rules in `slots.yaml` |
 | Prompt engineering: diversified prompts | `prompts` | `template` (deterministic), `llm` (optional) |
 | Generation: image / edit and video models | `generate` | `mock`, `qwen_image`, `wan_video`, `http_api` |
-| Annotation: proposal models | `propose` | `mock`, `sam`, `yolo`, `pose` |
+| Annotation: proposal models | `propose` | `mock`, `sam`, `model` (a trained checkpoint: Ultralytics, ONNX or RF-DETR; also registered as `yolo`), `pose`, `vlm` (not yet run against a live service); proposed identities over the frames of a clip by box linking |
 | Annotation: human-in-the-loop, refine | `review --gui`, `import-labels`, `export-labels` | bundled desktop annotator; COCO, YOLO, DeepLabCut, SLEAP |
 | Species datasets (boxes, masks, keypoints) | `dataset` | COCO + YOLO (+ top-down pose crops) |
 | Model training | `train` | `yolo`, `rfdetr`, `sleap_dlc` |
@@ -134,13 +134,34 @@ Every stage reads and writes the project folder, can be re-run, and accepts `--d
 ### Human in the loop and the training gate
 
 `propose` never accepts anything. Labels enter the dataset only through `review`: in the
-annotator window (accept **A**, reject **R**, draw a box **B**, an outline **P**, keypoints **K**, move or
-resize anything), by importing labels corrected in SLEAP or DeepLabCut, or, if you choose, with
-`--auto` (accept every proposal that passes the automatic gates).
+annotator window (accept **A**, reject **R**, draw a box **B**, an outline **P**, keypoints **K**, set the
+identity of the selected animal **0-9**, move or resize anything), by importing labels, or, if you choose,
+with `--auto` (accept every proposal that passes the automatic gates).
+
+Every review record (`labels/reviewed/<id>.json`) keeps `status`, `origin` (`human`, `auto` or `import`),
+`reviewed_utc`, `proposal_source` (the proposal model the reviewer started from) and `edited` (whether the
+stored labels differ from that proposal), so "accepted as proposed" and "corrected, then accepted" can be
+counted apart (`animalworld status`: `accepted_by_human`, `accepted_after_edit`).
+
+**Imported labels.** `animalworld import-labels PROJECT --format coco|yolo|dlc|sleap PATH` writes the labels
+as **accepted, with `origin: import`**: they enter the dataset without having been looked at in this package.
+That is the right choice for labels you corrected in SLEAP or DeepLabCut. Add `--status proposed` to put them
+in `labels/proposed` instead, where they wait for review like the output of a proposal model.
+`animalworld export-labels PROJECT --format coco|yolo|dlc|sleap` writes the accepted labels (`yolo`: label
+files only; `animalworld dataset` writes the complete YOLO dataset with images and the train / val split).
+
+**Identities in a clip.** For units with several frames (a generated clip) `propose` links the proposed boxes
+over the frames with the package's box tracker and writes a proposed `track_id` per animal
+(`propose.link_identities: false` turns it off). It is a box-overlap proposal, without appearance or a video
+model: identities can swap when animals cross. The annotator draws the id at each box and the keys 0-9 set
+it (giving an animal an id another animal has swaps the two). The annotator shows one frame at a time; there
+is no clip timeline. Propagating identities with SAM 2.1 video is not part of the annotation workflow.
 
 Training is gated: `train.min_accepted_images` (default 200). Below it, `train` tells you how many
 more accepted images are needed. `train --force` trains a small model anyway, which you can use as
-the proposer for the next round (`propose --backend yolo`): that is the refine loop.
+the proposer for the next round (`propose --backend model`; it takes the newest weights under `models/`,
+Ultralytics `best.pt`, an exported `.onnx` or an RF-DETR `checkpoint_best*.pth`, or `--weights FILE`, e.g. a
+released checkpoint such as `mouseworld-det.ckpt`): that is the refine loop.
 
 ## A new species needs only YAML
 

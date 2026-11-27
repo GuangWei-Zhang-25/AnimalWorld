@@ -71,5 +71,8 @@ class WanVideoGenerator(Generator):
             tmp = str(p)[:-4] + ".tmp.mp4"
             export_to_video(frames, tmp, fps=int(o["fps"]))
             os.replace(tmp, p)
+            # The clip size comes from generate.options (width, height), not from the manifest's W / H, which are
+            # image sizes; the size used is written to the generation log.
             yield {"id": m["id"], "video": str(p), "frames": len(frames), "fps": int(o["fps"]),
+                   "video_W": int(o["width"]), "video_H": int(o["height"]), "steps": int(o["num_inference_steps"]),
                    "sec": round(time.time() - t0, 1), "gpu": gpu, "generator": "wan_video"}

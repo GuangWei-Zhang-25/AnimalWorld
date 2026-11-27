@@ -1,7 +1,10 @@
 """Literature backends: ``search(query, limit) -> list of records``.
 
-A record is a dict with keys: id, source, title, abstract, year, journal, doi.
-Network backends cache every page under <project>/literature/cache so re-runs cost no requests.
+A record is a dict with keys: id, source, title, abstract, year, journal, doi, authors (list of
+"Surname Initials"), volume, issue, pages. The last four were added in 0.2.1: records written by an
+earlier version lack them, so read them with ``record.get(...)``.
+Network backends cache every page under <project>/literature/cache so re-runs cost no requests; the
+cache holds the raw answers, so `animalworld literature --force` re-parses old pages with the new fields.
 """
 from __future__ import annotations
 

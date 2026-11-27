@@ -113,6 +113,20 @@ class Doc:
         self.selected = len(self.instances) - 1
         return self.selected
 
+    def set_track_id(self, i: int, track_id: Optional[int]) -> None:
+        """Give animal i the identity `track_id` (None clears it). The identity is the same animal's number on every
+        frame of one clip; if another animal of this image already has that number the two are swapped, so a
+        reviewer repairs an identity swap with one key."""
+        old = self.instances[i].get("track_id")
+        if old == track_id:
+            return
+        self.checkpoint()
+        if track_id is not None:
+            for j, other in enumerate(self.instances):
+                if j != i and other.get("track_id") == track_id:
+                    other["track_id"] = old
+        self.instances[i]["track_id"] = track_id
+
     def next_keypoint(self, i: int) -> Optional[str]:
         """The first keypoint name the instance does not have yet (keypoints are placed in the species' order)."""
         have = self.instances[i].get("keypoints") or {}
